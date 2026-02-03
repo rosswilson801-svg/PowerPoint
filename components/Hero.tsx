@@ -23,7 +23,7 @@ const Hero: React.FC = () => {
 
         <p className="text-xl md:text-2xl text-brand-secondary mb-16 max-w-2xl leading-relaxed font-medium">
           Premium PSHE curriculum solutions tailored for regional relevance.
-          Ready-to-teach modules for schools in the UK, HK, US, and beyond.
+          Ready-to-teach modules for schools in the UK, China, HK, US, and beyond.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-8 mb-24">
