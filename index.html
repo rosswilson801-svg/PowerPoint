@@ -1,50 +1,111 @@
-
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Clarity Curriculum | Gorgeous PSHE Presentations</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        color: #0F172A;
-        background-color: #FFFFFF;
-        overflow-x: hidden;
+<html lang="en" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clarity | Global Regional English Content for Schools</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#0F172A',   // Navy
+              secondary: '#334155', // Slate
+              accent: '#0369A1',    // Blue CTA
+              bg: '#F8FAFC',        // Light Gray Bg
+              text: '#020617'       // Deep Black
+            }
+          },
+          fontFamily: {
+            sans: ['"Open Sans"', 'sans-serif'],
+            display: ['Poppins', 'sans-serif'],
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-soft': 'pulseSoft 3s infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+            pulseSoft: {
+              '0%, 100%': { opacity: '1' },
+              '50%': { opacity: '0.8' },
+            }
+          }
+        }
       }
-      .gradient-mesh {
-        background: radial-gradient(circle at 50% 50%, #E0F2FE 0%, rgba(255,255,255,0) 100%),
-                    radial-gradient(circle at 10% 20%, #CFFAFE 0%, rgba(255,255,255,0) 100%),
-                    radial-gradient(circle at 90% 80%, #F0FDFA 0%, rgba(255,255,255,0) 100%);
-      }
-      .glass-card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(226, 232, 240, 0.5);
-      }
-      .glow-border:hover {
-        box-shadow: 0 0 20px rgba(8, 145, 178, 0.15);
-        border-color: rgba(8, 145, 178, 0.4);
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "framer-motion": "https://esm.sh/framer-motion@^12.30.0"
-  }
-}
-</script>
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Open Sans', sans-serif;
+      color: #020617;
+      background-color: #F8FAFC;
+      overflow-x: hidden;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .font-display {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .gradient-hero {
+      background: radial-gradient(circle at top right, rgba(3, 105, 161, 0.08), transparent 40%),
+        radial-gradient(circle at bottom left, rgba(15, 23, 42, 0.05), transparent 40%);
+    }
+
+    .glass-nav {
+      background: rgba(248, 250, 252, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+    }
+
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.1);
+    }
+
+    .cta-shadow {
+      box-shadow: 0 4px 14px 0 rgba(3, 105, 161, 0.39);
+    }
+
+    *::selection {
+      background-color: #0369A1;
+      color: #ffffff;
+    }
+  </style>
+  <script type="module" src="/index.tsx"></script>
 </head>
-  <body>
-    <div id="root"></div>
-  </body>
+
+<body class="selection-custom">
+  <div id="root"></div>
+</body>
+
 </html>
