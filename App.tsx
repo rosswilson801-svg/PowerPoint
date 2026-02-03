@@ -12,8 +12,93 @@ import LeadMagnet from './components/LeadMagnet';
 import Dashboard from './components/Dashboard';
 import AdminLogin from './components/AdminLogin';
 import { supabase } from './lib/supabase';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import Blog from './components/Blog';
+import BlogPost from './components/BlogPost';
 import { Flag, Zap, Globe, Heart, MessageSquare, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const Home = ({ setShowDashboard }: { setShowDashboard: (v: boolean) => void }) => (
+  <>
+    <Navigation onHomeClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+    <Hero />
+    <RegionalTicker />
+    <Section id="benefits" className="py-32">
+      <div className="text-center mb-32">
+        <span className="text-[12px] font-bold tracking-[0.3em] text-brand-accent uppercase mb-6 block animate-fade-in">Global Content, Local Relevance</span>
+        <h2 className="text-5xl md:text-7xl font-black text-brand-primary tracking-tighter font-display leading-tight">
+          Regional Content <br />for Every Context.
+        </h2>
+      </div>
+      <div className="space-y-12">
+        <BenefitCard
+          title="Pre-built for Your Country"
+          description="We deliver English regionally relevant content globally. Our pre-built subscription packages ensure you meet local requirements with zero prep time."
+          image="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1200"
+          tags={[
+            { icon: <Flag size={16} />, label: "Region-Specific" },
+            { icon: <Zap size={16} />, label: "Subscription-Ready" },
+            { icon: <Globe size={16} />, label: "Global Standards" }
+          ]}
+        />
+        <BenefitCard
+          reverse
+          title="Custom Orders for Specific Cultures"
+          description="If you have unique cultural needs or specific pastoral challenges, we build custom modules that speak directly to your student body's experience and your specific ethos."
+          image="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=1200"
+          tags={[
+            { icon: <MessageSquare size={16} />, label: "Deep Customization" },
+            { icon: <Heart size={16} />, label: "Bespoke Tone" },
+            { icon: <Shield size={16} />, label: "Vetted Content" }
+          ]}
+        />
+      </div>
+    </Section>
+    <Section id="sample" className="py-20">
+      <div className="max-w-7xl mx-auto">
+        <LeadMagnet />
+      </div>
+    </Section>
+    <Gallery />
+    <Pricing />
+    <Section id="testimonials" className="bg-brand-primary/5 py-40">
+      <div className="text-center mb-24">
+        <span className="text-[12px] font-bold tracking-[0.3em] text-brand-accent uppercase mb-6 block">Validation</span>
+        <h2 className="text-5xl md:text-7xl font-black text-brand-primary max-w-4xl mx-auto tracking-tighter font-display">Trusted Around the Globe.</h2>
+      </div>
+    </Section>
+    <Section id="faq" centered className="py-40">
+      <span className="text-[12px] font-bold tracking-[0.3em] text-brand-accent uppercase mb-6 block">Common Questions</span>
+      <h2 className="text-5xl md:text-7xl font-black text-brand-primary mb-24 tracking-tighter font-display">Got Questions?</h2>
+      <div className="max-w-4xl mx-auto space-y-16 text-left">
+        {[
+          { q: "Do you support content for non-English speakers?", a: "While we specialize in English regional relevant content, our modules are used globally in English-medium institutions worldwide." },
+          { q: "How do subscriptions work?", a: "Pre-built packages are billed annually. You get instant access to our core library, including all regional updates for your selected territory." },
+          { q: "What's the process for a Custom Order?", a: "Custom orders begin with a consultation call. We discuss your specific context, regional requirements, and branding before building your bespoke curriculum." }
+        ].map((item, i) => (
+          <div key={i} className="pb-16 border-b border-brand-primary/5 last:border-0 group cursor-pointer">
+            <h4 className="text-3xl font-black text-brand-primary mb-6 font-display group-hover:text-brand-accent transition-colors">{item.q}</h4>
+            <p className="text-xl text-brand-secondary leading-relaxed font-medium">{item.a}</p>
+          </div>
+        ))}
+      </div>
+    </Section>
+    <Section id="contact" className="bg-brand-primary text-white py-48" centered>
+      <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+        <h2 className="text-6xl md:text-9xl font-black mb-12 tracking-tighter font-display">Get in touch.</h2>
+        <p className="text-2xl md:text-3xl text-slate-400 mb-24 max-w-2xl mx-auto font-medium leading-relaxed">Let's start a conversation about your unique curriculum needs.</p>
+        <ContactForm />
+      </motion.div>
+    </Section>
+    <footer className="py-24 px-6 text-center border-t border-brand-primary/5 bg-white">
+      <div className="text-2xl font-black tracking-tighter text-brand-primary uppercase mb-6 font-display">Clarity</div>
+      <p className="text-brand-secondary text-sm font-bold tracking-widest uppercase mb-8">© Studio Clarity 2026. Supporting regional curriculum needs worldwide.</p>
+      <button onClick={() => setShowDashboard(true)} className="text-[10px] font-black uppercase tracking-widest text-brand-accent/40 hover:text-brand-accent transition-colors cursor-pointer">
+        Admin Dashboard
+      </button>
+    </footer>
+  </>
+);
 
 const App: React.FC = () => {
   const [showDashboard, setShowDashboard] = React.useState(false);
@@ -23,139 +108,36 @@ const App: React.FC = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   return (
-    <AnimatePresence mode="wait">
-      {showDashboard ? (
-        !session ? (
-          <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <AdminLogin onLogin={() => { }} onBack={() => setShowDashboard(false)} />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-          >
-            <Dashboard onBack={() => setShowDashboard(false)} />
-          </motion.div>
-        )
-      ) : (
-        <motion.div
-          key="website"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="min-h-screen bg-brand-bg font-sans"
-        >
-          <Navigation />
-
-          <Hero />
-
-          <RegionalTicker />
-
-          <Section id="benefits" className="py-32">
-            <div className="text-center mb-32">
-              <span className="text-[12px] font-bold tracking-[0.3em] text-brand-accent uppercase mb-6 block animate-fade-in">Global Content, Local Relevance</span>
-              <h2 className="text-5xl md:text-7xl font-black text-brand-primary tracking-tighter font-display leading-tight">
-                Regional Content <br />for Every Context.
-              </h2>
-            </div>
-
-            <div className="space-y-12">
-              <BenefitCard
-                title="Pre-built for Your Country"
-                description="We deliver English regionally relevant content globally. Our pre-built subscription packages ensure you meet local requirements with zero prep time."
-                image="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1200"
-                tags={[
-                  { icon: <Flag size={16} />, label: "Region-Specific" },
-                  { icon: <Zap size={16} />, label: "Subscription-Ready" },
-                  { icon: <Globe size={16} />, label: "Global Standards" }
-                ]}
-              />
-
-              <BenefitCard
-                reverse
-                title="Custom Orders for Specific Cultures"
-                description="If you have unique cultural needs or specific pastoral challenges, we build custom modules that speak directly to your student body's experience and your specific ethos."
-                image="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=1200"
-                tags={[
-                  { icon: <MessageSquare size={16} />, label: "Deep Customization" },
-                  { icon: <Heart size={16} />, label: "Bespoke Tone" },
-                  { icon: <Shield size={16} />, label: "Vetted Content" }
-                ]}
-              />
-            </div>
-          </Section>
-
-          <Section id="sample" className="py-20">
-            <div className="max-w-7xl mx-auto">
-              <LeadMagnet />
-            </div>
-          </Section>
-
-          <Gallery />
-
-          <Pricing />
-
-          <Section id="testimonials" className="bg-brand-primary/5 py-40">
-            <div className="text-center mb-24">
-              <span className="text-[12px] font-bold tracking-[0.3em] text-brand-accent uppercase mb-6 block">Validation</span>
-              <h2 className="text-5xl md:text-7xl font-black text-brand-primary max-w-4xl mx-auto tracking-tighter font-display">Trusted Around the Globe.</h2>
-            </div>
-          </Section>
-
-          <Section id="faq" centered className="py-40">
-            <span className="text-[12px] font-bold tracking-[0.3em] text-brand-accent uppercase mb-6 block">Common Questions</span>
-            <h2 className="text-5xl md:text-7xl font-black text-brand-primary mb-24 tracking-tighter font-display">Got Questions?</h2>
-
-            <div className="max-w-4xl mx-auto space-y-16 text-left">
-              {[
-                { q: "Do you support content for non-English speakers?", a: "While we specialize in English regional relevant content, our modules are used globally in English-medium institutions worldwide." },
-                { q: "How do subscriptions work?", a: "Pre-built packages are billed annually. You get instant access to our core library, including all regional updates for your selected territory." },
-                { q: "What's the process for a Custom Order?", a: "Custom orders begin with a consultation call. We discuss your specific context, regional requirements, and branding before building your bespoke curriculum." }
-              ].map((item, i) => (
-                <div key={i} className="pb-16 border-b border-brand-primary/5 last:border-0 group cursor-pointer">
-                  <h4 className="text-3xl font-black text-brand-primary mb-6 font-display group-hover:text-brand-accent transition-colors">{item.q}</h4>
-                  <p className="text-xl text-brand-secondary leading-relaxed font-medium">{item.a}</p>
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          <Section id="contact" className="bg-brand-primary text-white py-48" centered>
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-6xl md:text-9xl font-black mb-12 tracking-tighter font-display">Get in touch.</h2>
-              <p className="text-2xl md:text-3xl text-slate-400 mb-24 max-w-2xl mx-auto font-medium leading-relaxed">Let's start a conversation about your unique curriculum needs.</p>
-              <ContactForm />
+    <BrowserRouter>
+      <AnimatePresence mode="wait">
+        {showDashboard ? (
+          !session ? (
+            <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <AdminLogin onLogin={() => { }} onBack={() => setShowDashboard(false)} />
             </motion.div>
-          </Section>
-
-          <footer className="py-24 px-6 text-center border-t border-brand-primary/5 bg-white">
-            <div className="text-2xl font-black tracking-tighter text-brand-primary uppercase mb-6 font-display">Clarity</div>
-            <p className="text-brand-secondary text-sm font-bold tracking-widest uppercase mb-8">© Studio Clarity 2026. Supporting regional curriculum needs worldwide.</p>
-            <button
-              onClick={() => setShowDashboard(true)}
-              className="text-[10px] font-black uppercase tracking-widest text-brand-accent/40 hover:text-brand-accent transition-colors cursor-pointer"
-            >
-              Admin Dashboard
-            </button>
-          </footer>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          ) : (
+            <motion.div key="dashboard" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <Dashboard onBack={() => setShowDashboard(false)} />
+            </motion.div>
+          )
+        ) : (
+          <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen bg-brand-bg font-sans">
+            <Routes>
+              <Route path="/" element={<Home setShowDashboard={setShowDashboard} />} />
+              <Route path="/blog" element={<><Navigation /><Blog /></>} />
+              <Route path="/blog/:slug" element={<><Navigation /><BlogPost /></>} />
+            </Routes>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </BrowserRouter>
   );
 };
 
