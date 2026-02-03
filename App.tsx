@@ -17,6 +17,7 @@ import Blog from './components/Blog';
 import BlogPost from './components/BlogPost';
 import { Flag, Zap, Globe, Heart, MessageSquare, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/react';
 
 const Home = ({ setShowDashboard }: { setShowDashboard: (v: boolean) => void }) => (
   <>
@@ -137,6 +138,7 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <Analytics />
     </BrowserRouter>
   );
 };
