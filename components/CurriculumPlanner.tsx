@@ -283,7 +283,8 @@ const CurriculumPlanner: React.FC = () => {
                                         <GripVertical size={16} className="text-brand-secondary opacity-5 group-hover:opacity-100 transition-opacity mt-1" />
                                     </div>
                                 </motion.div>
-                            ))}
+                            );
+                        })}
                     </div>
                 </div>
 
