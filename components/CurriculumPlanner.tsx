@@ -563,19 +563,33 @@ const CurriculumPlanner: React.FC = () => {
                                                                 </span>
                                                             </div>
 
-                                                            <h3 className="text-5xl font-black text-brand-primary uppercase tracking-tight leading-[0.95] font-display italic mb-10 max-w-3xl">
+                                                            <h3 className="text-5xl font-black text-brand-primary uppercase tracking-tight leading-[0.95] font-display italic mb-6 max-w-3xl">
                                                                 {scheduledModule.title}
                                                             </h3>
 
-                                                            <div className="flex items-center gap-4">
-                                                                <button className="flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-brand-accent hover:shadow-lg hover:shadow-brand-accent/30 transition-all group active:scale-95">
-                                                                    <PlayCircle size={20} className="group-hover:scale-110 transition-transform" />
-                                                                    Launch Class Slides
-                                                                </button>
-                                                                <button className="flex items-center gap-3 px-6 py-4 bg-white border-2 border-brand-primary/5 text-brand-secondary rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:border-brand-primary/20 hover:text-brand-primary transition-all active:scale-95">
-                                                                    <FileText size={18} />
-                                                                    Worksheet
-                                                                </button>
+                                                            <p className="text-sm font-medium text-brand-secondary/80 leading-relaxed max-w-2xl mb-10">
+                                                                This module explores the fundamental concepts of {scheduledModule.title.toLowerCase()}, equipping students with practical strategies for resilience and emotional regulation. Key focus on peer-to-peer discussion and scenario-based learning.
+                                                            </p>
+
+                                                            <div className="flex flex-col gap-4">
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary/40">Lesson Actions</p>
+                                                                <div className="flex items-center gap-4">
+                                                                    <button className="flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-brand-accent hover:shadow-lg hover:shadow-brand-accent/30 transition-all group active:scale-95">
+                                                                        <PlayCircle size={20} className="group-hover:scale-110 transition-transform" />
+                                                                        Launch Class Slides
+                                                                    </button>
+                                                                    <button className="flex items-center gap-3 px-6 py-4 bg-white border-2 border-brand-primary/5 text-brand-secondary rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:border-brand-primary/20 hover:text-brand-primary transition-all active:scale-95">
+                                                                        <FileText size={18} />
+                                                                        Worksheet
+                                                                    </button>
+                                                                    <div className="h-12 w-px bg-brand-primary/10 mx-2" />
+                                                                    <button className="flex items-center gap-3 px-6 py-4 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-emerald-100 transition-all active:scale-95 group/video">
+                                                                        <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm group-hover/video:scale-110 transition-transform">
+                                                                            <Video size={12} className="text-emerald-600 ml-0.5" />
+                                                                        </div>
+                                                                        Watch Teacher Demo
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
 
