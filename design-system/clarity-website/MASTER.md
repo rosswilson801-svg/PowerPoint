@@ -28,14 +28,14 @@
 
 ### Typography
 
-- **Heading Font:** Baloo 2
-- **Body Font:** Comic Neue
-- **Mood:** kids, education, playful, friendly, colorful, learning
-- **Google Fonts:** [Baloo 2 + Comic Neue](https://fonts.google.com/share?selection.family=Baloo+2:wght@400;500;600;700|Comic+Neue:wght@300;400;700)
+- **Heading Font:** Poppins
+- **Body Font:** Open Sans
+- **Mood:** Professional, Educational, Authoritative, Clear
+- **Google Fonts:** [Poppins + Open Sans](https://fonts.google.com/share?selection.family=Open+Sans:wght@300;400;500;600;700|Poppins:wght@400;500;600;700;800;900)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&family=Comic+Neue:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap');
 ```
 
 ### Spacing Variables
