@@ -395,7 +395,7 @@ const CurriculumPlanner: React.FC = () => {
                                             {WEEKS[activeWeek]}
                                         </span>
                                         <span className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-[0.2em] mt-1">
-                                            {viewMode === 'daily' ? `Focused ${psheDay} Brief` : 'Weekly Academic Journal'}
+                                            {viewMode === 'daily' ? `Focused ${psheDay === 'All Days' ? 'Daily' : psheDay} Brief` : 'Weekly Academic Journal'}
                                         </span>
                                     </div>
                                     <button
@@ -450,7 +450,7 @@ const CurriculumPlanner: React.FC = () => {
                 {viewMode === 'daily' ? (
                     <div className="flex-grow flex items-center justify-center mb-4">
                         <div className="w-full max-w-[1400px]">
-                            {DAYS.filter(day => day === psheDay).map((day) => {
+                            {DAYS.filter(day => psheDay === 'All Days' ? day === 'Monday' : day === psheDay).map((day) => {
                                 const rawModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`];
                                 const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
                                 return (
@@ -465,7 +465,7 @@ const CurriculumPlanner: React.FC = () => {
                                             </div>
                                         </div>
                                         <div
-                                            className={`aspect-[21/9] rounded-[3rem] border-2 border-dashed transition-all p-0 flex flex-col items-center justify-center text-center gap-8 group cursor-pointer relative overflow-hidden active:scale-[0.99]
+                                            className={`min-h-[600px] w-full rounded-[3rem] border-2 border-dashed transition-all p-0 flex flex-col items-center justify-center text-center gap-8 group cursor-pointer relative overflow-hidden active:scale-[0.99]
                                             ${scheduledModule
                                                     ? 'border-brand-primary/5 bg-white shadow-2xl shadow-brand-primary/10 ring-1 ring-brand-primary/5'
                                                     : 'border-brand-primary/10 hover:border-brand-accent/40 bg-white/30 hover:bg-white'}
