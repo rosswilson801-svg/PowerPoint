@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar,
@@ -111,7 +111,7 @@ const getLocalizedContent = (module: any, regionId: string) => {
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const WEEKS = ['Term 1: Week 1', 'Term 1: Week 2', 'Term 1: Week 3', 'Term 1: Week 4'];
 const YEAR_GROUPS = ['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Sixth Form'];
-const MONTHS = ['September', 'October', 'November', 'December'];
+const MONTHS = ['September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June', 'July'];
 
 const TEACHERS = [
     { id: '1', name: 'Shirley Gibson', role: 'PSHE Coordinator', initials: 'SG', regionId: 'HK', allowedYears: ['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Sixth Form'] },
@@ -131,6 +131,16 @@ const CurriculumPlanner: React.FC = () => {
     const [psheDay, setPsheDay] = useState<string>('Wednesday');
     const [selectedExecution, setSelectedExecution] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'daily' | 'week' | 'month' | 'pulse'>('daily');
+
+    // Auto-sync date on mount
+    useEffect(() => {
+        const now = new Date();
+        const currentMonthName = now.toLocaleString('default', { month: 'long' });
+        const index = MONTHS.indexOf(currentMonthName);
+        if (index !== -1) {
+            setActiveMonth(index);
+        }
+    }, []);
 
     const handleSchedule = (day: string, moduleId: string, weekIndex?: number) => {
         const module = CLARITY_MODULES.find(m => m.id === moduleId);
@@ -482,82 +492,74 @@ const CurriculumPlanner: React.FC = () => {
                                                     <motion.div
                                                         initial={{ opacity: 0 }}
                                                         animate={{ opacity: 1 }}
-                                                        className="w-full h-full flex divide-x divide-brand-primary/5 text-left"
+                                                        className="w-full h-full flex bg-white relative overflow-hidden text-left"
                                                     >
-                                                        {/* Col 1: Identity */}
-                                                        <div className="w-[30%] p-10 flex flex-col relative overflow-hidden">
-                                                            <div className={`absolute top-0 left-0 w-full h-2 ${scheduledModule.color}`} />
-                                                            <div className="flex items-start justify-between mb-8">
-                                                                <div className="p-3 bg-brand-bg rounded-2xl border border-brand-primary/5">
-                                                                    <BookOpen size={24} className="text-brand-primary" />
-                                                                </div>
-                                                                <span className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/60 bg-brand-secondary/5 px-3 py-1 rounded-full">{scheduledModule.category}</span>
+                                                        {/* Brand Accent Background */}
+                                                        <div className={`absolute top-0 right-0 w-[55%] h-full opacity-[0.03] ${scheduledModule.color} skew-x-12 origin-top-right translate-x-20`} />
+
+                                                        {/* Left: Hero Content (Main Focus) */}
+                                                        <div className="flex-1 flex flex-col justify-center p-14 pr-8 relative z-10">
+                                                            <div className="flex items-center gap-3 mb-6">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary bg-brand-bg px-3 py-1.5 rounded-lg border border-brand-primary/5">
+                                                                    {scheduledModule.category}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-brand-secondary/40 uppercase tracking-widest flex items-center gap-1.5">
+                                                                    <Clock size={12} />
+                                                                    45 Minutes
+                                                                </span>
                                                             </div>
-                                                            <h3 className="text-3xl font-black text-brand-primary uppercase tracking-tight leading-[0.9] font-display italic mb-6">
+
+                                                            <h3 className="text-5xl font-black text-brand-primary uppercase tracking-tight leading-[0.95] font-display italic mb-10 max-w-3xl">
                                                                 {scheduledModule.title}
                                                             </h3>
-                                                            <div className="mt-auto space-y-4">
-                                                                <div className="flex items-center gap-3 text-[11px] font-bold text-brand-secondary">
-                                                                    <Clock size={14} className="text-brand-accent" />
-                                                                    <span>45 Minutes</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-3 text-[11px] font-bold text-brand-secondary">
-                                                                    <Globe size={14} className="text-brand-accent" />
-                                                                    <span>{activeRegion.flag} {activeRegion.name} Context</span>
-                                                                </div>
+
+                                                            <div className="flex items-center gap-4">
+                                                                <button className="flex items-center gap-3 px-8 py-4 bg-brand-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:bg-brand-accent hover:shadow-lg hover:shadow-brand-accent/30 transition-all group active:scale-95">
+                                                                    <PlayCircle size={20} className="group-hover:scale-110 transition-transform" />
+                                                                    Launch Class Slides
+                                                                </button>
+                                                                <button className="flex items-center gap-3 px-6 py-4 bg-white border-2 border-brand-primary/5 text-brand-secondary rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] hover:border-brand-primary/20 hover:text-brand-primary transition-all active:scale-95">
+                                                                    <FileText size={18} />
+                                                                    Worksheet
+                                                                </button>
                                                             </div>
                                                         </div>
 
-                                                        {/* Col 2: Assets (Previously Hidden) */}
-                                                        <div className="w-[40%] p-10 bg-brand-bg/30 flex flex-col">
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary/40 mb-6 flex items-center gap-2">
-                                                                <PlayCircle size={12} />
-                                                                Lesson Assets
-                                                            </p>
-                                                            <div className="grid grid-cols-2 gap-4 h-full">
-                                                                <div className="col-span-2 bg-white rounded-2xl border border-brand-primary/5 p-4 flex items-center justify-between group/asset hover:border-brand-accent/50 cursor-pointer transition-all shadow-sm">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="p-2 bg-rose-50 rounded-lg text-rose-500">
-                                                                            <Video size={16} />
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Classroom Slides</p>
-                                                                            <p className="text-[9px] font-bold text-brand-secondary/60">Interactive Presentation</p>
-                                                                        </div>
+                                                        {/* Right: Context Sidebar */}
+                                                        <div className="w-[380px] border-l border-brand-primary/5 bg-slate-50/50 p-10 flex flex-col justify-center relative z-20 backdrop-blur-sm">
+                                                            <div className="mb-8">
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary/40 mb-4 flex items-center gap-2">
+                                                                    <Globe size={12} />
+                                                                    Statutory Context
+                                                                </p>
+                                                                <div className="p-5 rounded-2xl bg-white border border-brand-primary/5 shadow-sm">
+                                                                    <div className="flex items-center gap-2 mb-3">
+                                                                        <span className="text-lg">{activeRegion.flag}</span>
+                                                                        <span className="text-[9px] font-black text-brand-accent uppercase bg-brand-accent/5 px-2 py-0.5 rounded-md">
+                                                                            {activeRegion.statutoryTerm}
+                                                                        </span>
                                                                     </div>
-                                                                    <div className="w-6 h-6 rounded-full border border-brand-primary/10 flex items-center justify-center group-hover/asset:bg-brand-primary group-hover/asset:text-white transition-colors">
-                                                                        <Plus size={12} />
-                                                                    </div>
-                                                                </div>
-                                                                <div className="bg-white rounded-2xl border border-brand-primary/5 p-4 flex flex-col justify-between group/asset hover:border-brand-accent/50 cursor-pointer transition-all shadow-sm">
-                                                                    <FileText size={16} className="text-blue-500 mb-2" />
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Worksheet</p>
-                                                                </div>
-                                                                <div className="bg-white rounded-2xl border border-brand-primary/5 p-4 flex flex-col justify-between group/asset hover:border-brand-accent/50 cursor-pointer transition-all shadow-sm">
-                                                                    <MessageSquare size={16} className="text-amber-500 mb-2" />
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Teacher Guide</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Col 3: Compliance (Previously Hidden) */}
-                                                        <div className="w-[30%] p-10 flex flex-col bg-white">
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary/40 mb-6 flex items-center gap-2">
-                                                                <CheckCircle2 size={12} />
-                                                                Statutory Check
-                                                            </p>
-                                                            <div className="space-y-4">
-                                                                <div className="p-4 rounded-2xl bg-brand-bg border border-brand-primary/5">
-                                                                    <span className="text-[9px] font-black text-brand-accent uppercase bg-brand-accent/10 px-2 py-0.5 rounded-full mb-2 inline-block">
-                                                                        {scheduledModule.context}
-                                                                    </span>
-                                                                    <p className="text-[10px] font-medium text-brand-secondary leading-relaxed">
-                                                                        This lesson maps directly to <span className="text-brand-primary font-bold">{activeRegion.id === 'UK' ? 'RSE 2020' : activeRegion.statutoryTerm}</span> framework requirements for Year 7.
+                                                                    <p className="text-[11px] font-medium text-brand-secondary leading-relaxed">
+                                                                        Matches <span className="font-bold text-brand-primary">Year 7 Requirements</span> for {activeRegion.name} curriculum standards.
                                                                     </p>
                                                                 </div>
-                                                                <button className="w-full py-3 rounded-xl border border-brand-primary/10 text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all">
-                                                                    View Full Mapping
-                                                                </button>
+                                                            </div>
+
+                                                            <div>
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary/40 mb-4 flex items-center gap-2">
+                                                                    <MessageSquare size={12} />
+                                                                    Teacher Notes
+                                                                </p>
+                                                                <div className="p-5 rounded-2xl bg-white border border-brand-primary/5 shadow-sm space-y-3">
+                                                                    <div className="flex items-start gap-3">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-1.5" />
+                                                                        <p className="text-[11px] font-medium text-brand-secondary">Focus on student-led discussion.</p>
+                                                                    </div>
+                                                                    <div className="flex items-start gap-3">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-brand-accent mt-1.5" />
+                                                                        <p className="text-[11px] font-medium text-brand-secondary">Video at slide 4 contains audio.</p>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </motion.div>
