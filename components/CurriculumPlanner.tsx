@@ -109,7 +109,7 @@ const getLocalizedContent = (module: any, regionId: string) => {
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const WEEKS = ['Term 1: Week 1', 'Term 1: Week 2', 'Term 1: Week 3', 'Term 1: Week 4'];
+const WEEKS = Array.from({ length: 52 }, (_, i) => `Week ${i + 1}`);
 const YEAR_GROUPS = ['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Sixth Form'];
 const MONTHS = ['September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June', 'July'];
 
@@ -121,7 +121,15 @@ const TEACHERS = [
 
 const CurriculumPlanner: React.FC = () => {
     const [scheduledModules, setScheduledModules] = useState<Record<string, any>>({});
-    const [activeWeek, setActiveWeek] = useState(0);
+    // Term definitions based on user provided schedule (2025/2026)
+    const TERMS = [
+        { name: 'Autumn Term', start: new Date(2025, 7, 18), end: new Date(2025, 11, 17) }, // Aug 18 - Dec 17
+        { name: 'Spring Term', start: new Date(2026, 0, 8), end: new Date(2026, 2, 27) },   // Jan 8 - Mar 27
+        { name: 'Summer Term', start: new Date(2026, 3, 13), end: new Date(2026, 5, 24) }   // Apr 13 - Jun 24
+    ];
+
+    const [activeWeek, setActiveWeek] = useState(1);
+    const [activeTermStr, setActiveTermStr] = useState('Autumn Term');
     const [activeMonth, setActiveMonth] = useState(0);
     const [activeTeacher, setActiveTeacher] = useState(TEACHERS[0]);
     const [activeYear, setActiveYear] = useState('Year 7');
@@ -131,14 +139,30 @@ const CurriculumPlanner: React.FC = () => {
     const [psheDay, setPsheDay] = useState<string>('Wednesday');
     const [selectedExecution, setSelectedExecution] = useState<any>(null);
     const [viewMode, setViewMode] = useState<'daily' | 'week' | 'month' | 'pulse'>('daily');
+    const [isNordMode, setIsNordMode] = useState(false);
 
     // Auto-sync date on mount
     useEffect(() => {
-        const now = new Date();
+        const now = new Date(); // Current system time
+
+        // 1. Sync Month
         const currentMonthName = now.toLocaleString('default', { month: 'long' });
-        const index = MONTHS.indexOf(currentMonthName);
-        if (index !== -1) {
-            setActiveMonth(index);
+        const monthIndex = MONTHS.indexOf(currentMonthName);
+        if (monthIndex !== -1) setActiveMonth(monthIndex);
+
+        // 2. Sync Term & Week
+        const currentTerm = TERMS.find(t => now >= t.start && now <= t.end);
+
+        if (currentTerm) {
+            setActiveTermStr(currentTerm.name);
+            // Calculate week number: (diff in ms / ms per week) + 1
+            const diffTime = Math.abs(now.getTime() - currentTerm.start.getTime());
+            const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+            setActiveWeek(diffWeeks);
+        } else {
+            // Fallback for demo if date is out of range default to Spring Term Week 4 (as per user context)
+            setActiveTermStr('Spring Term');
+            setActiveWeek(4);
         }
     }, []);
 
@@ -164,7 +188,28 @@ const CurriculumPlanner: React.FC = () => {
     return (
         <div className="flex bg-[#F8FAFC] min-h-[85vh] rounded-[3rem] border border-brand-primary/5 shadow-2xl overflow-hidden font-sans border-t-8 border-t-brand-accent relative">
             {/* Sidebar: Content Library */}
-            <div className="w-72 flex-shrink-0 bg-white border-r border-brand-primary/10 p-6 flex flex-col gap-6 shadow-sm">
+            <div className={`w-72 flex-shrink-0 bg-white border-r border-brand-primary/10 p-6 flex flex-col gap-6 shadow-sm transition-colors duration-500 ${isNordMode ? 'border-r-[#002F6C]/10' : ''}`}>
+                {/* School Identity (Branding Demo) */}
+                <div className="mb-2">
+                    {isNordMode ? (
+                        <div className="flex items-center gap-3 animate-in fade-in duration-700">
+                            <div className="w-10 h-10 bg-[#002F6C] text-white rounded-lg flex items-center justify-center font-serif font-bold text-xl shadow-lg shadow-[#002F6C]/20">N</div>
+                            <div>
+                                <h1 className="text-[12px] font-black uppercase tracking-widest text-[#002F6C] font-serif leading-tight">Nord Anglia</h1>
+                                <p className="text-[9px] font-bold text-[#002F6C]/60 uppercase tracking-[0.2em]">Education</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-brand-primary/5 text-brand-primary rounded-xl flex items-center justify-center font-display font-black text-xl">C</div>
+                            <div>
+                                <h1 className="text-[12px] font-black uppercase tracking-widest text-brand-primary leading-tight">Clarity</h1>
+                                <p className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-[0.2em]">Curriculum</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Teacher Identity Dropdown */}
                 <div className="relative group/teacher">
                     <div className="flex items-center gap-4 mb-2 p-5 bg-brand-bg rounded-[2rem] border border-brand-primary/10 shadow-sm hover:border-brand-accent/40 transition-all cursor-pointer">
@@ -381,10 +426,19 @@ const CurriculumPlanner: React.FC = () => {
                                 Auto-Map Statutory
                             </button>
 
-                            <button className="flex items-center gap-3 px-10 py-4 bg-brand-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-brand-accent transition-all duration-300 cursor-pointer active:scale-95">
-                                <Download size={16} />
-                                Export Map
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setIsNordMode(!isNordMode)}
+                                    className={`flex items-center gap-3 px-6 py-4 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${isNordMode ? 'bg-[#002F6C] text-white border-[#002F6C]' : 'bg-white text-brand-secondary border-brand-primary/5 hover:border-brand-primary/20'}`}
+                                >
+                                    <Globe size={16} />
+                                    {isNordMode ? 'Nord Mode' : 'Simulate Tenant'}
+                                </button>
+                                <button className="flex items-center gap-3 px-10 py-4 bg-brand-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-brand-accent transition-all duration-300 cursor-pointer active:scale-95">
+                                    <Download size={16} />
+                                    Export Map
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -396,21 +450,21 @@ const CurriculumPlanner: React.FC = () => {
                             {viewMode === 'daily' || viewMode === 'week' ? (
                                 <div className="flex items-center gap-6 mt-8">
                                     <button
-                                        onClick={() => setActiveWeek(prev => Math.max(0, prev - 1))}
+                                        onClick={() => setActiveWeek(prev => Math.max(1, prev - 1))}
                                         className="p-3 bg-white hover:bg-brand-bg rounded-2xl transition-all border border-brand-primary/10 cursor-pointer shadow-md hover:shadow-lg group"
                                     >
                                         <ChevronLeft size={24} className="text-brand-secondary group-hover:text-brand-primary" />
                                     </button>
                                     <div className="flex flex-col px-4 border-l-4 border-brand-accent">
                                         <span className="text-[12px] font-black uppercase tracking-[0.4em] text-brand-primary">
-                                            {WEEKS[activeWeek]}
+                                            {activeTermStr}: Week {activeWeek}
                                         </span>
                                         <span className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-[0.2em] mt-1">
                                             {viewMode === 'daily' ? `Focused ${psheDay === 'All Days' ? 'Daily' : psheDay} Brief` : 'Weekly Academic Journal'}
                                         </span>
                                     </div>
                                     <button
-                                        onClick={() => setActiveWeek(prev => Math.min(WEEKS.length - 1, prev + 1))}
+                                        onClick={() => setActiveWeek(prev => prev + 1)}
                                         className="p-3 bg-white hover:bg-brand-bg rounded-2xl transition-all border border-brand-primary/5 cursor-pointer shadow-md hover:shadow-lg group"
                                     >
                                         <ChevronRight size={24} className="text-brand-secondary group-hover:text-brand-primary" />
