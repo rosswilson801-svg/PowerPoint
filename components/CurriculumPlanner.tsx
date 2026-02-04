@@ -32,17 +32,81 @@ const REGIONS = [
 ];
 
 const CLARITY_MODULES = [
-    { id: '1', title: 'Understanding and coping with anxiety', category: 'Mental Health', color: 'bg-emerald-500', context: 'UK Statutory' },
+    {
+        id: '1',
+        title: 'Understanding and coping with anxiety',
+        category: 'Mental Health',
+        color: 'bg-emerald-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Managing Academic Pressure & Exam Stress', context: 'HK Statutory' },
+            'FR': { title: 'Gérer l\'Anxiété et la Pression Scolaire', context: 'Éducation Nationale' },
+            'ES': { title: 'Gestión de la Ansiedad y Exámenes', context: 'Ley de Educación' }
+        }
+    },
     { id: '2', title: 'Stress and relaxation', category: 'Mental Health', color: 'bg-blue-500', context: 'General' },
-    { id: '3', title: 'Mental health and depression', category: 'Mental Health', color: 'bg-indigo-500', context: 'UK Statutory' },
+    {
+        id: '3',
+        title: 'Mental health and depression',
+        category: 'Mental Health',
+        color: 'bg-indigo-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Youth Mental Health: Signs & Support', context: 'HK Statutory' },
+            'FR': { title: 'Santé Mentale des Jeunes', context: 'Éducation Nationale' }
+        }
+    },
     { id: '4', title: 'Building resilience', category: 'Foundation', color: 'bg-rose-500', context: 'Global' },
     { id: '5', title: 'The science of happiness', category: 'Foundation', color: 'bg-cyan-500', context: 'Foundation' },
-    { id: '6', title: 'What is peer pressure', category: 'Relationships', color: 'bg-violet-500', context: 'UK Statutory' },
+    {
+        id: '6',
+        title: 'What is peer pressure',
+        category: 'Relationships',
+        color: 'bg-violet-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Navigating Social Hierarchies', context: 'HK Statutory' }
+        }
+    },
     { id: '7', title: 'Positivity', category: 'Foundation', color: 'bg-amber-500', context: 'Foundation' },
     { id: '8', title: 'Male body-image', category: 'Self-Image', color: 'bg-orange-500', context: 'Regional' },
-    { id: '9', title: 'Online grooming and spotting the signs', category: 'Safety', color: 'bg-red-500', context: 'UK Statutory' },
-    { id: '10', title: 'Cyber safety', category: 'Safety', color: 'bg-slate-500', context: 'Global' },
+    {
+        id: '9',
+        title: 'Online grooming and spotting the signs',
+        category: 'Safety',
+        color: 'bg-red-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Digital Safety & Grooming Prevention', context: 'HK Statutory' }
+        }
+    },
+    {
+        id: '10',
+        title: 'Cyber safety',
+        category: 'Safety',
+        color: 'bg-slate-500',
+        context: 'Global',
+        variants: {
+            'HK': { title: 'Cyber Resilience & Data Privacy', context: 'HK Statutory' }
+        }
+    },
 ];
+
+const getLocalizedContent = (module: any, regionId: string) => {
+    if (!module) return null;
+    if (module.variants && module.variants[regionId]) {
+        return { ...module, ...module.variants[regionId] };
+    }
+    // Deep fallback for statutory content even if no variant exists
+    if (module.context === 'UK Statutory') {
+        const region = REGIONS.find(r => r.id === regionId);
+        return {
+            ...module,
+            context: region ? region.statutoryTerm : module.context
+        };
+    }
+    return module;
+};
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const WEEKS = ['Term 1: Week 1', 'Term 1: Week 2', 'Term 1: Week 3', 'Term 1: Week 4'];
@@ -192,32 +256,34 @@ const CurriculumPlanner: React.FC = () => {
                         </div>
                     </div>
                     <div className="space-y-4 max-h-[450px] overflow-y-auto pr-3 custom-scrollbar">
-                        {CLARITY_MODULES.map((module) => (
-                            <motion.div
-                                key={module.id}
-                                whileHover={{ x: 6, scale: 1.02 }}
-                                className="p-5 rounded-2xl bg-brand-bg border border-brand-primary/5 cursor-pointer group hover:border-brand-accent/30 transition-all shadow-sm active:scale-95"
-                                onClick={() => handleSchedule(psheDay === 'All Days' ? 'Monday' : psheDay, module.id)}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className={`w-1.5 h-12 rounded-full ${module.color} mt-1`} />
-                                    <div className="flex-grow">
-                                        <p className="text-[13px] font-black text-brand-primary leading-tight font-display uppercase tracking-tight mb-2">
-                                            {module.title}
-                                        </p>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[9px] font-bold text-brand-secondary/60 uppercase tracking-widest bg-white/50 px-2 py-0.5 rounded border border-brand-primary/5">
-                                                {module.category}
-                                            </span>
-                                            <span className="text-[8px] font-bold text-brand-accent uppercase bg-brand-accent/10 px-2 py-0.5 rounded-full">
-                                                {module.context === 'UK Statutory' ? activeRegion.statutoryTerm : module.context}
-                                            </span>
+                        {CLARITY_MODULES.map((baseModule) => {
+                            const module = getLocalizedContent(baseModule, activeRegion.id);
+                            return (
+                                <motion.div
+                                    key={module.id}
+                                    whileHover={{ x: 6, scale: 1.02 }}
+                                    className="p-5 rounded-2xl bg-brand-bg border border-brand-primary/5 cursor-pointer group hover:border-brand-accent/30 transition-all shadow-sm active:scale-95"
+                                    onClick={() => handleSchedule(psheDay === 'All Days' ? 'Monday' : psheDay, module.id)}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className={`w-1.5 h-12 rounded-full ${module.color} mt-1`} />
+                                        <div className="flex-grow">
+                                            <p className="text-[13px] font-black text-brand-primary leading-tight font-display uppercase tracking-tight mb-2">
+                                                {module.title}
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[9px] font-bold text-brand-secondary/60 uppercase tracking-widest bg-white/50 px-2 py-0.5 rounded border border-brand-primary/5">
+                                                    {module.category}
+                                                </span>
+                                                <span className="text-[8px] font-bold text-brand-accent uppercase bg-brand-accent/10 px-2 py-0.5 rounded-full">
+                                                    {module.context}
+                                                </span>
+                                            </div>
                                         </div>
+                                        <GripVertical size={16} className="text-brand-secondary opacity-5 group-hover:opacity-100 transition-opacity mt-1" />
                                     </div>
-                                    <GripVertical size={16} className="text-brand-secondary opacity-5 group-hover:opacity-100 transition-opacity mt-1" />
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            ))}
                     </div>
                 </div>
 
@@ -383,9 +449,10 @@ const CurriculumPlanner: React.FC = () => {
                 {/* The Scheduling Grid */}
                 {viewMode === 'daily' ? (
                     <div className="flex-grow flex items-center justify-center mb-4">
-                        <div className="w-full max-w-2xl">
+                        <div className="w-full max-w-[1400px]">
                             {DAYS.filter(day => day === psheDay).map((day) => {
-                                const scheduledModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`];
+                                const rawModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`];
+                                const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
                                 return (
                                     <div key={day} className="flex flex-col gap-8">
                                         <div className="flex items-center justify-between px-6">
@@ -398,15 +465,13 @@ const CurriculumPlanner: React.FC = () => {
                                             </div>
                                         </div>
                                         <div
-                                            className={`aspect-[16/9] rounded-[3rem] border-2 border-dashed transition-all p-12 flex flex-col items-center justify-center text-center gap-8 group cursor-pointer relative overflow-hidden active:scale-98
+                                            className={`aspect-[21/9] rounded-[3rem] border-2 border-dashed transition-all p-0 flex flex-col items-center justify-center text-center gap-8 group cursor-pointer relative overflow-hidden active:scale-[0.99]
                                             ${scheduledModule
                                                     ? 'border-brand-primary/5 bg-white shadow-2xl shadow-brand-primary/10 ring-1 ring-brand-primary/5'
                                                     : 'border-brand-primary/10 hover:border-brand-accent/40 bg-white/30 hover:bg-white'}
                                             `}
                                             onClick={() => {
-                                                if (scheduledModule) {
-                                                    setSelectedExecution(scheduledModule);
-                                                } else {
+                                                if (!scheduledModule) {
                                                     handleSchedule(day, String(Math.floor(Math.random() * 10) + 1));
                                                 }
                                             }}
@@ -414,27 +479,85 @@ const CurriculumPlanner: React.FC = () => {
                                             <AnimatePresence mode="wait">
                                                 {scheduledModule ? (
                                                     <motion.div
-                                                        initial={{ opacity: 0, scale: 0.95 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        className="w-full h-full flex flex-col items-center justify-center"
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        className="w-full h-full flex divide-x divide-brand-primary/5 text-left"
                                                     >
-                                                        <div className={`w-32 h-2 rounded-full ${scheduledModule.color} mb-12 opacity-60 shadow-lg`} />
-                                                        <div className="w-20 h-20 rounded-[2rem] bg-brand-bg flex items-center justify-center mb-8 border-2 border-brand-primary/5 shadow-inner">
-                                                            <BookOpen size={32} className="text-brand-primary opacity-60" />
-                                                        </div>
-                                                        <h3 className="text-3xl font-black text-brand-primary uppercase tracking-tight leading-tight mb-4 font-display italic">
-                                                            {scheduledModule.title}
-                                                        </h3>
-                                                        <span className="text-xs font-bold text-brand-accent uppercase bg-brand-accent/5 px-6 py-2.5 rounded-full mb-8 inline-block tracking-widest border border-brand-accent/10">
-                                                            {scheduledModule.context === 'UK Statutory' ? activeRegion.statutoryTerm : 'Core Curriculum'}
-                                                        </span>
-                                                        <div className="flex items-center justify-center gap-6 text-xs font-black text-brand-secondary uppercase tracking-[0.25em] pt-10 border-t border-brand-primary/5 w-64">
-                                                            <div className="flex items-center gap-2">
-                                                                <Clock size={18} className="text-brand-accent" />
-                                                                45 Mins
+                                                        {/* Col 1: Identity */}
+                                                        <div className="w-[30%] p-10 flex flex-col relative overflow-hidden">
+                                                            <div className={`absolute top-0 left-0 w-full h-2 ${scheduledModule.color}`} />
+                                                            <div className="flex items-start justify-between mb-8">
+                                                                <div className="p-3 bg-brand-bg rounded-2xl border border-brand-primary/5">
+                                                                    <BookOpen size={24} className="text-brand-primary" />
+                                                                </div>
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/60 bg-brand-secondary/5 px-3 py-1 rounded-full">{scheduledModule.category}</span>
                                                             </div>
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-brand-primary/10" />
-                                                            <div className="text-brand-accent">Interactive</div>
+                                                            <h3 className="text-3xl font-black text-brand-primary uppercase tracking-tight leading-[0.9] font-display italic mb-6">
+                                                                {scheduledModule.title}
+                                                            </h3>
+                                                            <div className="mt-auto space-y-4">
+                                                                <div className="flex items-center gap-3 text-[11px] font-bold text-brand-secondary">
+                                                                    <Clock size={14} className="text-brand-accent" />
+                                                                    <span>45 Minutes</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-3 text-[11px] font-bold text-brand-secondary">
+                                                                    <Globe size={14} className="text-brand-accent" />
+                                                                    <span>{activeRegion.flag} {activeRegion.name} Context</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Col 2: Assets (Previously Hidden) */}
+                                                        <div className="w-[40%] p-10 bg-brand-bg/30 flex flex-col">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary/40 mb-6 flex items-center gap-2">
+                                                                <PlayCircle size={12} />
+                                                                Lesson Assets
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-4 h-full">
+                                                                <div className="col-span-2 bg-white rounded-2xl border border-brand-primary/5 p-4 flex items-center justify-between group/asset hover:border-brand-accent/50 cursor-pointer transition-all shadow-sm">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="p-2 bg-rose-50 rounded-lg text-rose-500">
+                                                                            <Video size={16} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Classroom Slides</p>
+                                                                            <p className="text-[9px] font-bold text-brand-secondary/60">Interactive Presentation</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="w-6 h-6 rounded-full border border-brand-primary/10 flex items-center justify-center group-hover/asset:bg-brand-primary group-hover/asset:text-white transition-colors">
+                                                                        <Plus size={12} />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-white rounded-2xl border border-brand-primary/5 p-4 flex flex-col justify-between group/asset hover:border-brand-accent/50 cursor-pointer transition-all shadow-sm">
+                                                                    <FileText size={16} className="text-blue-500 mb-2" />
+                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Worksheet</p>
+                                                                </div>
+                                                                <div className="bg-white rounded-2xl border border-brand-primary/5 p-4 flex flex-col justify-between group/asset hover:border-brand-accent/50 cursor-pointer transition-all shadow-sm">
+                                                                    <MessageSquare size={16} className="text-amber-500 mb-2" />
+                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Teacher Guide</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Col 3: Compliance (Previously Hidden) */}
+                                                        <div className="w-[30%] p-10 flex flex-col bg-white">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary/40 mb-6 flex items-center gap-2">
+                                                                <CheckCircle2 size={12} />
+                                                                Statutory Check
+                                                            </p>
+                                                            <div className="space-y-4">
+                                                                <div className="p-4 rounded-2xl bg-brand-bg border border-brand-primary/5">
+                                                                    <span className="text-[9px] font-black text-brand-accent uppercase bg-brand-accent/10 px-2 py-0.5 rounded-full mb-2 inline-block">
+                                                                        {scheduledModule.context}
+                                                                    </span>
+                                                                    <p className="text-[10px] font-medium text-brand-secondary leading-relaxed">
+                                                                        This lesson maps directly to <span className="text-brand-primary font-bold">{activeRegion.id === 'UK' ? 'RSE 2020' : activeRegion.statutoryTerm}</span> framework requirements for Year 7.
+                                                                    </p>
+                                                                </div>
+                                                                <button className="w-full py-3 rounded-xl border border-brand-primary/10 text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all">
+                                                                    View Full Mapping
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </motion.div>
                                                 ) : (
@@ -455,9 +578,10 @@ const CurriculumPlanner: React.FC = () => {
                         </div>
                     </div>
                 ) : viewMode === 'week' ? (
-                    <div className="grid grid-cols-5 gap-4 flex-grow mb-4">
-                        {DAYS.map((day) => {
-                            const scheduledModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`];
+                    <div className={`grid ${psheDay === 'All Days' ? 'grid-cols-5' : 'grid-cols-1 max-w-2xl mx-auto w-full'} gap-4 flex-grow mb-4`}>
+                        {DAYS.filter(day => psheDay === 'All Days' || day === psheDay).map((day) => {
+                            const rawModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`];
+                            const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
                             return (
                                 <div key={day} className="flex flex-col gap-6">
                                     <p className="text-[11px] font-black uppercase tracking-[0.4em] text-brand-primary text-center opacity-40">
@@ -559,7 +683,8 @@ const CurriculumPlanner: React.FC = () => {
                                     {/* Days Grid for this week */}
                                     <div className={`grid ${psheDay === 'All Days' ? 'grid-cols-5' : 'grid-cols-1'} gap-6`}>
                                         {DAYS.filter(day => psheDay === 'All Days' || day === psheDay).map(day => {
-                                            const scheduledModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${wIndex}-${day}`];
+                                            const rawModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${wIndex}-${day}`];
+                                            const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
                                             return (
                                                 <motion.div
                                                     key={`${weekName}-${day}`}
@@ -582,7 +707,7 @@ const CurriculumPlanner: React.FC = () => {
                                                             <div className="flex items-start justify-between mb-4">
                                                                 <div className={`w-3 h-3 rounded-full ${scheduledModule.color} shadow-sm group-hover:scale-125 transition-transform`} />
                                                                 <span className="text-[8px] font-black text-brand-accent uppercase tracking-widest bg-brand-accent/5 px-2 py-0.5 rounded-full border border-brand-accent/10">
-                                                                    {scheduledModule.context === 'UK Statutory' ? activeRegion.statutoryTerm : 'Core'}
+                                                                    {scheduledModule.context}
                                                                 </span>
                                                             </div>
                                                             <p className="text-[11px] font-black text-brand-primary uppercase tracking-tight leading-[1.3] font-display line-clamp-3 italic">
