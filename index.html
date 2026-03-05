@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet">
 
   <script>
@@ -49,13 +49,15 @@
             }
           },
           fontFamily: {
-            sans: ['"Open Sans"', 'sans-serif'],
+            sans: ['"Fira Sans"', '"Open Sans"', 'sans-serif'],
             display: ['Poppins', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace'],
           },
           animation: {
             'fade-in': 'fadeIn 0.5s ease-out forwards',
             'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             'pulse-soft': 'pulseSoft 3s infinite',
+            'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
           },
           keyframes: {
             fadeIn: {
@@ -69,6 +71,12 @@
             pulseSoft: {
               '0%, 100%': { opacity: '1' },
               '50%': { opacity: '0.8' },
+            },
+            shake: {
+              '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(4px, 0, 0)' },
             }
           }
         }

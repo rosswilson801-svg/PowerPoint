@@ -54,6 +54,7 @@ const Navigation: React.FC<{ onHomeClick?: () => void }> = ({ onHomeClick }) => 
           <button onClick={() => scrollTo('testimonials')} className="text-brand-secondary hover:text-brand-primary transition-colors cursor-pointer">Reviews</button>
           <Link to="/blog" className="text-brand-secondary hover:text-brand-primary transition-colors cursor-pointer">Journal</Link>
           <button onClick={() => scrollTo('faq')} className="text-brand-secondary hover:text-brand-primary transition-colors cursor-pointer">FAQ</button>
+          <Link to="/dashboard" className="text-brand-secondary hover:text-brand-primary transition-colors cursor-pointer">Dashboard</Link>
           <button
             onClick={() => scrollTo('contact')}
             className="px-8 py-3 bg-brand-primary text-white rounded-full hover:bg-brand-accent transition-all duration-300 shadow-xl shadow-brand-primary/20 cursor-pointer font-display"

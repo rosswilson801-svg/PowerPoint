@@ -6,8 +6,8 @@ const PricingCard = ({ title, subtitle, features, badge, icon: Icon, ctaText, ct
   <motion.div
     whileHover={{ y: -8 }}
     className={`flex-1 p-10 md:p-14 rounded-[48px] border flex flex-col transition-all duration-500 ${variant === "dark"
-        ? "bg-brand-primary border-brand-primary text-white shadow-2xl"
-        : "bg-white border-brand-primary/5 text-brand-primary shadow-xl shadow-brand-primary/5 hover:shadow-2xl"
+      ? "bg-brand-primary border-brand-primary text-white shadow-2xl"
+      : "bg-white border-brand-primary/5 text-brand-primary shadow-xl shadow-brand-primary/5 hover:shadow-2xl"
       }`}
   >
     <div className="flex justify-between items-start mb-10">
@@ -39,8 +39,8 @@ const PricingCard = ({ title, subtitle, features, badge, icon: Icon, ctaText, ct
     <button
       onClick={ctaOnClick}
       className={`w-full py-6 rounded-3xl font-black uppercase tracking-widest text-[14px] transition-all duration-300 cta-shadow font-display focus:scale-95 ${variant === "dark"
-          ? "bg-white text-brand-primary hover:bg-brand-accent hover:text-white"
-          : "bg-brand-primary text-white hover:bg-brand-accent"
+        ? "bg-white text-brand-primary hover:bg-brand-accent hover:text-white"
+        : "bg-brand-primary text-white hover:bg-brand-accent"
         }`}
     >
       {ctaText}
@@ -71,11 +71,10 @@ const Pricing: React.FC = () => {
             ctaText="Start Subscription"
             ctaOnClick={scrollToContact}
             features={[
-              "Access to 12+ Core PSHE Modules",
-              "UK, US, & International Contexts",
+              "12+ Region-Specific Core PSHE Modules",
+              "10+ Hours Saved on Prep Per Week",
               "Annual Regional Compliance Updates",
-              "Full English Resource Portal",
-              "Teacher Scripts & Lesson Plans",
+              "Zero-Prep Teacher Lesson Plans",
               "Instant Digital Delivery"
             ]}
           />
@@ -89,11 +88,10 @@ const Pricing: React.FC = () => {
             ctaText="Request Custom Quote"
             ctaOnClick={scrollToContact}
             features={[
-              "Custom Regional Content Mapping",
-              "School-Specific Cultural Nuance",
+              "Bespoke Cultural Nuance Mapping",
+              "Custom Alignment to Your Ethos",
               "White-labeled Visual Identity",
-              "On-site/Remote Faculty Training",
-              "Bespoke Case Study Development",
+              "Direct Consultation & Faculty Training",
               "Exclusive Content Rights"
             ]}
           />

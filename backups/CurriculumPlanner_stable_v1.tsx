@@ -1,0 +1,1517 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    GripVertical,
+    Plus,
+    BookOpen,
+    Clock,
+    CheckCircle2,
+    Download,
+    LayoutGrid,
+    Settings,
+    Sparkles,
+    ExternalLink,
+    FileText,
+    PlayCircle,
+    Video,
+    X,
+    MessageSquare,
+    Activity,
+    AlertCircle,
+    Monitor,
+    Play,
+    Globe,
+    Trash2
+} from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import {
+    DndContext,
+    DragOverlay,
+    useDraggable,
+    useDroppable,
+    DragStartEvent,
+    DragEndEvent,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    closestCenter
+} from '@dnd-kit/core';
+
+const REGIONS = [
+    { id: 'UK', name: 'United Kingdom', flag: '🇬🇧', statutoryTerm: 'UK Statutory', location: 'London/Manchester' },
+    { id: 'HK', name: 'Hong Kong', flag: '🇭🇰', statutoryTerm: 'HK Statutory', location: 'Hong Kong' },
+    { id: 'FR', name: 'France', flag: '🇫🇷', statutoryTerm: 'Éducation Nationale', location: 'Paris/Lyon' },
+    { id: 'ES', name: 'Spain', flag: '🇪🇸', statutoryTerm: 'Ley de Educación', location: 'Madrid/Barcelona' },
+];
+
+const CLARITY_MODULES = [
+    {
+        id: '1',
+        title: 'Understanding and coping with anxiety',
+        category: 'Mental Health',
+        color: 'bg-emerald-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Managing Academic Pressure & Exam Stress', context: 'HK Statutory' },
+            'FR': { title: 'Gérer l\'Anxiété et la Pression Scolaire', context: 'Éducation Nationale' },
+            'ES': { title: 'Gestión de la Ansiedad y Exámenes', context: 'Ley de Educación' }
+        }
+    },
+    { id: '2', title: 'Stress and relaxation', category: 'Mental Health', color: 'bg-blue-500', context: 'General' },
+    {
+        id: '3',
+        title: 'Mental health and depression',
+        category: 'Mental Health',
+        color: 'bg-indigo-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Youth Mental Health: Signs & Support', context: 'HK Statutory' },
+            'FR': { title: 'Santé Mentale des Jeunes', context: 'Éducation Nationale' }
+        }
+    },
+    { id: '4', title: 'Building resilience', category: 'Foundation', color: 'bg-rose-500', context: 'Global' },
+    { id: '5', title: 'The science of happiness', category: 'Foundation', color: 'bg-cyan-500', context: 'Foundation' },
+    {
+        id: '6',
+        title: 'What is peer pressure',
+        category: 'Relationships',
+        color: 'bg-violet-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Navigating Social Hierarchies', context: 'HK Statutory' }
+        }
+    },
+    { id: '7', title: 'Positivity', category: 'Foundation', color: 'bg-amber-500', context: 'Foundation' },
+    { id: '8', title: 'Male body-image', category: 'Self-Image', color: 'bg-orange-500', context: 'Regional' },
+    {
+        id: '9',
+        title: 'Online grooming and spotting the signs',
+        category: 'Safety',
+        color: 'bg-red-500',
+        context: 'UK Statutory',
+        variants: {
+            'HK': { title: 'Digital Safety & Grooming Prevention', context: 'HK Statutory' }
+        }
+    },
+    {
+        id: '10',
+        title: 'Cyber safety',
+        category: 'Safety',
+        color: 'bg-slate-500',
+        context: 'Global',
+        variants: {
+            'HK': { title: 'Cyber Resilience & Data Privacy', context: 'HK Statutory' }
+        }
+    },
+];
+
+const getLocalizedContent = (module: any, regionId: string) => {
+    if (!module) return null;
+    if (module.variants && module.variants[regionId]) {
+        return { ...module, ...module.variants[regionId] };
+    }
+    // Deep fallback for statutory content even if no variant exists
+    if (module.context === 'UK Statutory') {
+        const region = REGIONS.find(r => r.id === regionId);
+        return {
+            ...module,
+            context: region ? region.statutoryTerm : module.context
+        };
+    }
+    return module;
+};
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const WEEKS = Array.from({ length: 52 }, (_, i) => `Week ${i + 1}`);
+const YEAR_GROUPS = ['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Sixth Form'];
+const MONTHS = ['September', 'October', 'November', 'December', 'January', 'February', 'March', 'April', 'May', 'June', 'July'];
+
+const TEACHERS = [
+    { id: '1', name: 'Shirley Gibson', role: 'PSHE Coordinator', initials: 'SG', regionId: 'HK', allowedYears: ['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Sixth Form'] },
+    { id: '2', name: 'Sarah Miller', role: 'Year 7 Teacher', initials: 'SM', regionId: 'UK', allowedYears: ['Year 7'] },
+    { id: '3', name: 'Mark Thompson', role: 'Year 8 Teacher', initials: 'MT', regionId: 'UK', allowedYears: ['Year 8'] },
+];
+
+const PresentationModal = ({ url, title, onClose }: { url: string, title: string, onClose: () => void }) => {
+    // Microsoft Office Online Viewer URL
+    const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-brand-primary/95 backdrop-blur-xl p-4 md:p-8"
+        >
+            <div className="w-full h-full max-w-7xl bg-white rounded-[2.5rem] overflow-hidden shadow-2xl relative flex flex-col">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-brand-accent/10 rounded-xl text-brand-accent">
+                            <Monitor size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-brand-primary font-display uppercase tracking-tight line-clamp-1">{title}</h3>
+                            <p className="text-[10px] font-bold text-brand-secondary/50 uppercase tracking-widest">Digital Lesson Presentation • 2025/26 Edition</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-brand-primary rounded-2xl transition-all"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Viewer */}
+                <div className="flex-1 bg-slate-900 overflow-hidden relative">
+                    <iframe
+                        src={viewerUrl}
+                        className="w-full h-full border-0"
+                        title="Presentation Viewer"
+                        allowFullScreen
+                    />
+                </div>
+
+                {/* Footer Controls */}
+                <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-center gap-8">
+                    <p className="text-[11px] font-bold text-brand-secondary/40 uppercase tracking-[0.2em]">Press [Esc] to Exit Presentation Mode</p>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+const DraggableModuleCard = ({ module, children }: { module: any, children: React.ReactNode, key?: any }) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `module-source-${module.id}`,
+        data: { module }
+    });
+
+    return (
+        <div ref={setNodeRef} {...listeners} {...attributes} className={`touch-none ${isDragging ? 'opacity-30' : ''}`}>
+            {children}
+        </div>
+    );
+};
+
+const DroppableDayCell = ({ id, children, disabled }: { id: string, children: React.ReactNode, disabled?: boolean, key?: any }) => {
+    const { isOver, setNodeRef } = useDroppable({
+        id: id,
+        disabled
+    });
+
+    return (
+        <div ref={setNodeRef} className={`relative transition-all h-full ${isOver ? 'bg-brand-accent/5 scale-[1.02]' : ''}`}>
+            {children}
+            {isOver && (
+                <div className="absolute inset-0 border-2 border-brand-accent border-dashed rounded-[2.5rem] pointer-events-none z-50 bg-brand-accent/5 backdrop-blur-[1px] flex items-center justify-center">
+                    <div className="bg-white px-4 py-2 rounded-full shadow-lg text-[10px] font-black uppercase tracking-widest text-brand-accent flex items-center gap-2">
+                        <Plus size={14} />
+                        Drop to Schedule
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const CurriculumPlanner: React.FC = () => {
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
+
+    const [scheduledModules, setScheduledModules] = useState<Record<string, any>>({});
+    const [loading, setLoading] = useState(true);
+
+    // Load Data from Supabase
+    useEffect(() => {
+        const fetchSchedule = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setLoading(false);
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('teacher_schedules')
+                .select('*')
+                .eq('user_id', session.user.id);
+
+            if (data) {
+                const scheduleMap: Record<string, any> = {};
+                data.forEach(item => {
+                    const key = `${item.year_group}-${item.class_id}-${item.month_index}-${item.week_number}-${item.day_of_week}`;
+                    // Find the module details from our constant library
+                    const baseModule = CLARITY_MODULES.find(m => m.id === item.module_id);
+                    if (baseModule) {
+                        scheduleMap[key] = { ...baseModule, db_id: item.id };
+                    }
+                });
+                setScheduledModules(scheduleMap);
+            }
+            setLoading(false);
+        };
+
+        fetchSchedule();
+    }, []);
+    // Term definitions based on user provided schedule (2025/2026)
+    const TERMS = [
+        { name: 'Autumn Term', start: new Date(2025, 7, 18), end: new Date(2025, 11, 17) }, // Aug 18 - Dec 17
+        { name: 'Spring Term', start: new Date(2026, 0, 8), end: new Date(2026, 2, 27) },   // Jan 8 - Mar 27
+        { name: 'Summer Term', start: new Date(2026, 3, 13), end: new Date(2026, 5, 24) }   // Apr 13 - Jun 24
+    ];
+
+    const [activeWeek, setActiveWeek] = useState(1);
+    const [activeTermStr, setActiveTermStr] = useState('Autumn Term');
+    const [activeMonth, setActiveMonth] = useState(0);
+    const [activeTeacher, setActiveTeacher] = useState(TEACHERS[0]);
+    const [activeYear, setActiveYear] = useState('Year 7');
+    const [activeClass, setActiveClass] = useState('7A');
+    const [activeRegion, setActiveRegion] = useState(REGIONS.find(r => r.id === activeTeacher.regionId) || REGIONS[0]);
+    const [activeContext, setActiveContext] = useState('National Curriculum');
+    const [psheDay, setPsheDay] = useState<string>('Wednesday');
+    const [selectedExecution, setSelectedExecution] = useState<any>(null);
+    const [viewMode, setViewMode] = useState<'daily' | 'week' | 'month' | 'year' | 'pulse'>('daily');
+    const [isNordMode, setIsNordMode] = useState(false);
+    const [activeDragModule, setActiveDragModule] = useState<any>(null);
+    const [activePresentation, setActivePresentation] = useState<{ url: string, title: string } | null>(null);
+
+    const handleDragStart = (event: DragStartEvent) => {
+        if (event.active.data.current?.module) {
+            setActiveDragModule(event.active.data.current.module);
+        }
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveDragModule(null);
+
+        if (over && active.data.current?.module) {
+            const targetId = over.id as string;
+            const module = active.data.current.module;
+            const [year, className, month, week, day] = targetId.split('-');
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            // Optimistic Update
+            setScheduledModules(prev => ({
+                ...prev,
+                [targetId]: module
+            }));
+
+            // Supabase Sync
+            const { error } = await supabase
+                .from('teacher_schedules')
+                .upsert({
+                    user_id: session.user.id,
+                    year_group: year,
+                    class_id: className,
+                    month_index: parseInt(month),
+                    week_number: parseInt(week),
+                    day_of_week: day,
+                    module_id: module.id
+                }, { onConflict: 'user_id,year_group,class_id,month_index,week_number,day_of_week' });
+
+            if (error) console.error("Sync error:", error);
+        }
+    };
+
+    // Auto-sync date on mount
+    useEffect(() => {
+        const now = new Date(); // Current system time
+
+        // 1. Sync Month
+        const currentMonthName = now.toLocaleString('default', { month: 'long' });
+        const monthIndex = MONTHS.indexOf(currentMonthName);
+        if (monthIndex !== -1) setActiveMonth(monthIndex);
+
+        // 2. Sync Term & Week
+        const currentTerm = TERMS.find(t => now >= t.start && now <= t.end);
+
+        if (currentTerm) {
+            setActiveTermStr(currentTerm.name);
+            // Calculate week number: (diff in ms / ms per week) + 1
+            const diffTime = Math.abs(now.getTime() - currentTerm.start.getTime());
+            const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+            setActiveWeek(diffWeeks);
+        } else {
+            // Fallback for demo if date is out of range default to Spring Term Week 4 (as per user context)
+            setActiveTermStr('Spring Term');
+            setActiveWeek(4);
+        }
+    }, []);
+
+    const handleSchedule = async (day: string, moduleId: string, weekIndex?: number) => {
+        const module = CLARITY_MODULES.find(m => m.id === moduleId);
+        if (!module) return;
+        const targetWeek = weekIndex !== undefined ? weekIndex : activeWeek;
+        const targetId = `${activeYear}-${activeClass}-${activeMonth}-${targetWeek}-${day}`;
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        // Optimistic Update
+        setScheduledModules(prev => ({
+            ...prev,
+            [targetId]: module
+        }));
+
+        // Supabase Sync
+        await supabase
+            .from('teacher_schedules')
+            .upsert({
+                user_id: session.user.id,
+                year_group: activeYear,
+                class_id: activeClass,
+                month_index: activeMonth,
+                week_number: targetWeek,
+                day_of_week: day,
+                module_id: module.id
+            }, { onConflict: 'user_id,year_group,class_id,month_index,week_number,day_of_week' });
+    };
+
+    const applyStatutoryTemplate = () => {
+        const newSchedule = { ...scheduledModules };
+        WEEKS.forEach((_, wIndex) => {
+            const module = CLARITY_MODULES[wIndex % CLARITY_MODULES.length];
+            newSchedule[`${activeYear}-${activeClass}-${wIndex}-Monday`] = module;
+        });
+        setScheduledModules(newSchedule);
+    };
+
+    const handleExport = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scheduledModules));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `clarity_schedule_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    };
+
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const parsed = JSON.parse(content);
+                // Basic validation: check if it looks like an object
+                if (typeof parsed === 'object' && parsed !== null) {
+                    setScheduledModules(parsed);
+                } else {
+                    alert('Invalid schedule file format');
+                }
+            } catch (error) {
+                console.error('Error importing schedule:', error);
+                alert('Failed to import schedule. Please check the file.');
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    return (
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+        >
+            <div className="flex bg-[#F8FAFC] h-[92vh] rounded-[3rem] border border-brand-primary/5 shadow-2xl overflow-hidden font-sans border-t-8 border-t-brand-accent relative">
+                {/* Sidebar: Content Library */}
+                <div className={`w-72 flex-shrink-0 bg-white border-r border-brand-primary/10 p-6 flex flex-col gap-6 shadow-sm transition-colors duration-500 ${isNordMode ? 'border-r-[#002F6C]/10' : ''}`}>
+                    {/* School Identity (Branding Demo) */}
+                    <div className="mb-2">
+                        {isNordMode ? (
+                            <div className="flex items-center gap-3 animate-in fade-in duration-700">
+                                <div className="w-10 h-10 bg-[#002F6C] text-white rounded-lg flex items-center justify-center font-serif font-bold text-xl shadow-lg shadow-[#002F6C]/20">N</div>
+                                <div>
+                                    <h1 className="text-[12px] font-black uppercase tracking-widest text-[#002F6C] font-serif leading-tight">Nord Anglia</h1>
+                                    <p className="text-[9px] font-bold text-[#002F6C]/60 uppercase tracking-[0.2em]">Education</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-brand-primary/5 text-brand-primary rounded-xl flex items-center justify-center font-display font-black text-xl">C</div>
+                                <div>
+                                    <h1 className="text-[12px] font-black uppercase tracking-widest text-brand-primary leading-tight">Clarity</h1>
+                                    <p className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-[0.2em]">Curriculum</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Teacher Identity Dropdown */}
+                    <div className="relative group/teacher">
+                        <div className="flex items-center gap-4 mb-2 p-5 bg-brand-bg rounded-[2rem] border border-brand-primary/10 shadow-sm hover:border-brand-accent/40 transition-all cursor-pointer">
+                            <div className="w-12 h-12 rounded-2xl bg-brand-primary text-white flex items-center justify-center font-black text-xs shadow-lg flex-shrink-0">
+                                {activeTeacher.initials}
+                            </div>
+                            <div className="flex-grow min-w-0">
+                                <p className="text-[11px] font-black uppercase tracking-widest text-brand-primary truncate">{activeTeacher.name}</p>
+                                <p className="text-[9px] font-bold text-brand-secondary/60 uppercase tracking-widest truncate">{activeTeacher.role}</p>
+                            </div>
+                        </div>
+
+                        {/* Hover Dropdown Menu */}
+                        <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-brand-primary/5 p-3 opacity-0 group-hover/teacher:opacity-100 pointer-events-none group-hover/teacher:pointer-events-auto transition-all z-[60] transform translate-y-2 group-hover/teacher:translate-y-0">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-brand-secondary/40 px-4 py-2">Switch Profile</p>
+                            {TEACHERS.map(teacher => (
+                                <button
+                                    key={teacher.id}
+                                    onClick={() => {
+                                        setActiveTeacher(teacher);
+                                        setActiveRegion(REGIONS.find(r => r.id === teacher.regionId) || REGIONS[0]);
+                                        if (!teacher.allowedYears.includes(activeYear)) {
+                                            setActiveYear(teacher.allowedYears[0]);
+                                        }
+                                    }}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all hover:bg-brand-bg text-left mb-1 last:mb-0
+                                    ${activeTeacher.id === teacher.id ? 'bg-brand-bg border border-brand-primary/5' : ''}
+                                `}
+                                >
+                                    <div className="w-8 h-8 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-black text-[10px]">
+                                        {teacher.initials}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary truncate">{teacher.name}</p>
+                                        <p className="text-[8px] font-bold text-brand-secondary/40 uppercase tracking-widest truncate">{teacher.role}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+
+
+                    {/* Scheduling Configuration */}
+                    <div className="flex flex-col gap-3">
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-brand-secondary/40 px-2 flex items-center gap-2">
+                            <Calendar size={10} className="text-brand-accent" />
+                            Scheduling Logic
+                        </span>
+                        <div className="flex flex-col gap-2">
+                            <div className="bg-brand-bg border border-brand-primary/5 p-4 rounded-3xl relative overflow-hidden group hover:border-brand-accent/30 transition-all">
+                                <label className="text-[8px] font-bold text-brand-secondary/40 uppercase tracking-widest block mb-1">PSHE Lesson Day</label>
+                                <select
+                                    value={psheDay}
+                                    onChange={(e) => setPsheDay(e.target.value)}
+                                    className="w-full bg-white border border-brand-primary/5 rounded-xl px-4 py-2 text-[10px] font-black text-brand-primary uppercase tracking-widest outline-none cursor-pointer focus:border-brand-accent transition-colors shadow-sm"
+                                >
+                                    <option value="All Days">Full Week View</option>
+                                    {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col flex-1 min-h-0">
+                        <div className="flex items-center justify-between mb-8 flex-shrink-0">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-secondary">
+                                Library
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[8px] font-bold text-brand-secondary/40 uppercase tracking-widest">Focus:</span>
+                                <select
+                                    className="text-[9px] font-bold text-brand-accent bg-brand-accent/5 border border-brand-accent/10 px-3 py-1.5 rounded-full outline-none cursor-pointer"
+                                    value={activeClass}
+                                    onChange={(e) => setActiveClass(e.target.value)}
+                                >
+                                    <option value="7A">Class 7A</option>
+                                    <option value="7B">Class 7B</option>
+                                    <option value="7C">Class 7C</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="space-y-4 flex-1 overflow-y-auto pr-3 custom-scrollbar min-h-0">
+                            {CLARITY_MODULES.map((baseModule) => {
+                                // Check if scheduled for this specific class and year
+                                const scheduledItem = Object.entries(scheduledModules).find(([key, scheduledModule]) => {
+                                    return key.startsWith(`${activeYear}-${activeClass}-`) && (scheduledModule as any).id === baseModule.id;
+                                });
+                                const isScheduled = !!scheduledItem;
+                                const module = getLocalizedContent(baseModule, activeRegion.id);
+                                return (
+                                    <DraggableModuleCard key={module.id} module={module}>
+                                        <motion.div
+                                            whileHover={isScheduled ? {} : { x: 6, scale: 1.02 }}
+                                            className={`p-5 rounded-2xl border transition-all shadow-sm relative overflow-hidden
+                                                ${isScheduled
+                                                    ? 'bg-slate-50 border-slate-100 opacity-60 cursor-default'
+                                                    : 'bg-brand-bg border-brand-primary/5 cursor-pointer hover:border-brand-accent/30 active:scale-95 group'
+                                                }
+                                            `}
+                                            onClick={() => {
+                                                if (!isScheduled) handleSchedule(psheDay === 'All Days' ? 'Monday' : psheDay, module.id);
+                                            }}
+                                        >
+                                            <div className="flex items-start gap-4">
+                                                <div className={`w-1.5 h-12 rounded-full ${module.color} mt-1`} />
+                                                <div className="flex-grow">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <p className="text-[13px] font-black text-brand-primary leading-tight font-display uppercase tracking-tight">
+                                                            {module.title}
+                                                        </p>
+                                                        {isScheduled && (
+                                                            <div className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 bg-brand-primary/10 text-brand-primary rounded-md">
+                                                                <CheckCircle2 size={10} />
+                                                                <span className="text-[7px] font-black uppercase">Assigned</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[9px] font-bold text-brand-secondary/60 uppercase tracking-widest bg-white/50 px-2 py-0.5 rounded border border-brand-primary/5">
+                                                            {module.category}
+                                                        </span>
+                                                        <span className="text-[8px] font-bold text-brand-accent uppercase bg-brand-accent/10 px-2 py-0.5 rounded-full">
+                                                            {module.context}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                {!isScheduled && <GripVertical size={16} className="text-brand-secondary opacity-5 group-hover:opacity-100 transition-opacity mt-1" />}
+                                            </div>
+                                        </motion.div>
+                                    </DraggableModuleCard>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+
+                </div>
+
+                {/* Main View: Calendar/Grid */}
+                <div className="flex-grow p-8 flex flex-col bg-[#FDFDFF] min-w-0">
+                    {/* Planner Header */}
+                    <div className="flex flex-col gap-8 mb-16">
+                        {/* Row 1: Year Groups & Global Context */}
+                        <div className="flex items-center justify-between">
+                            {/* Left: Year Groups */}
+                            <div className="flex items-center gap-3 overflow-x-auto pb-2 px-1 no-scrollbar">
+                                {YEAR_GROUPS.filter(year => activeTeacher.allowedYears.includes(year)).map(year => (
+                                    <button
+                                        key={year}
+                                        onClick={() => setActiveYear(year)}
+                                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex-shrink-0
+                                    ${activeYear === year
+                                                ? 'bg-brand-primary text-white shadow-xl scale-105'
+                                                : 'bg-white text-brand-secondary hover:bg-brand-primary/5 hover:text-brand-primary border border-brand-primary/10 shadow-sm'}
+                                `}
+                                    >
+                                        {year}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Right: Global Context */}
+                            <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-brand-primary/5 shadow-sm">
+                                {REGIONS.map(region => (
+                                    <button
+                                        key={region.id}
+                                        onClick={() => setActiveRegion(region)}
+                                        className={`px-4 py-2 rounded-xl border transition-all flex items-center gap-2 ${activeRegion.id === region.id ? 'bg-brand-accent border-brand-accent text-white shadow-md' : 'bg-transparent border-transparent hover:bg-brand-bg text-brand-primary opacity-60 hover:opacity-100'}`}
+                                    >
+                                        <span className="text-sm">{region.flag}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-widest">{region.id}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Row 2: Controls & View Switcher */}
+                        <div className="flex items-center justify-between">
+                            {/* View Switcher */}
+                            <div className="bg-white border border-brand-primary/5 p-1.5 rounded-2xl flex gap-1 shadow-sm">
+                                {['daily', 'week', 'month', 'year'].map((mode) => (
+                                    <button
+                                        key={mode}
+                                        onClick={() => setViewMode(mode as any)}
+                                        className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === mode ? 'bg-brand-primary text-white shadow-md' : 'text-brand-secondary hover:bg-brand-bg'}`}
+                                    >
+                                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                                    </button>
+                                ))}
+                                {activeTeacher.role === 'PSHE Coordinator' && (
+                                    <button
+                                        onClick={() => setViewMode('pulse')}
+                                        className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${viewMode === 'pulse' ? 'bg-brand-accent text-white shadow-md' : 'text-brand-secondary hover:bg-brand-bg'}`}
+                                    >
+                                        Pulse
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Action Tools */}
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={applyStatutoryTemplate}
+                                    className="flex items-center gap-3 px-6 py-3 bg-white text-brand-primary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand-primary/5 transition-all group border border-brand-primary/10 active:scale-95"
+                                >
+                                    <Sparkles size={14} className="text-brand-accent group-hover:rotate-12 transition-transform" />
+                                    Auto-Map
+                                </button>
+
+                                <div className="h-8 w-px bg-brand-primary/10" />
+
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setIsNordMode(!isNordMode)}
+                                        className={`flex items-center gap-3 px-5 py-3 border rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${isNordMode ? 'bg-[#002F6C] text-white border-[#002F6C]' : 'bg-white text-brand-secondary border-brand-primary/5 hover:border-brand-primary/20'}`}
+                                    >
+                                        <Globe size={14} />
+                                        {isNordMode ? 'Nord Mode' : 'Simulate'}
+                                    </button>
+
+                                    {/* Export / Import Controls */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleExport}
+                                            className="p-3 bg-white border border-brand-primary/10 rounded-xl text-brand-secondary hover:text-brand-primary hover:bg-brand-bg transition-all group relative"
+                                            title="Export Configuration"
+                                        >
+                                            <Download size={16} />
+                                        </button>
+                                        <label className="p-3 bg-white border border-brand-primary/10 rounded-xl text-brand-secondary hover:text-brand-primary hover:bg-brand-bg transition-all cursor-pointer relative" title="Import Configuration">
+                                            <input type="file" onChange={handleImport} className="hidden" accept=".json" />
+                                            <Download size={16} className="rotate-180" />
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <h2 className="text-6xl md:text-8xl font-black text-brand-primary tracking-[-0.04em] font-display leading-[0.75] uppercase italic whitespace-nowrap">
+                                {viewMode === 'pulse' ? 'Department' : viewMode === 'daily' ? 'The' : viewMode === 'week' ? 'The' : 'Academic'} <span className="text-brand-accent italic opacity-90">{viewMode === 'pulse' ? 'Pulse.' : viewMode === 'daily' ? 'Brief.' : viewMode === 'week' ? 'Journal.' : 'Roadmap.'}</span>
+                            </h2>
+                            {viewMode === 'daily' || viewMode === 'week' ? (
+                                <div className="flex items-center gap-6 mt-8">
+                                    <button
+                                        onClick={() => setActiveWeek(prev => Math.max(1, prev - 1))}
+                                        className="p-3 bg-white hover:bg-brand-bg rounded-2xl transition-all border border-brand-primary/10 cursor-pointer shadow-md hover:shadow-lg group"
+                                    >
+                                        <ChevronLeft size={24} className="text-brand-secondary group-hover:text-brand-primary" />
+                                    </button>
+                                    <div className="flex flex-col px-4 border-l-4 border-brand-accent">
+                                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-brand-primary">
+                                            {activeTermStr}: Week {activeWeek}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-[0.2em] mt-1">
+                                            {viewMode === 'daily' ? `Focused ${psheDay === 'All Days' ? 'Daily' : psheDay} Brief` : 'Weekly Academic Journal'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => setActiveWeek(prev => prev + 1)}
+                                        className="p-3 bg-white hover:bg-brand-bg rounded-2xl transition-all border border-brand-primary/5 cursor-pointer shadow-md hover:shadow-lg group"
+                                    >
+                                        <ChevronRight size={24} className="text-brand-secondary group-hover:text-brand-primary" />
+                                    </button>
+                                </div>
+                            ) : viewMode === 'month' ? (
+                                <div className="flex items-center gap-6 mt-8">
+                                    <button
+                                        onClick={() => setActiveMonth(prev => Math.max(0, prev - 1))}
+                                        className="p-3 bg-white hover:bg-brand-bg rounded-2xl transition-all border border-brand-primary/5 cursor-pointer shadow-md hover:shadow-lg group"
+                                    >
+                                        <ChevronLeft size={24} className="text-brand-secondary group-hover:text-brand-primary" />
+                                    </button>
+                                    <div className="flex flex-col mt-0 border-l-4 border-brand-accent px-4">
+                                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-brand-primary">
+                                            {MONTHS[activeMonth]} 2026
+                                        </span>
+                                        <span className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-[0.2em] mt-1">
+                                            Academic Roadmap Plan
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => setActiveMonth(prev => Math.min(MONTHS.length - 1, prev + 1))}
+                                        className="p-3 bg-white hover:bg-brand-bg rounded-2xl transition-all border border-brand-primary/5 cursor-pointer shadow-md hover:shadow-lg group"
+                                    >
+                                        <ChevronRight size={24} className="text-brand-secondary group-hover:text-brand-primary" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="mt-8 flex items-center gap-3">
+                                    <span className="px-5 py-2 bg-brand-accent/10 text-brand-accent rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Live Monitoring</span>
+                                    <span className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-widest">Real-time Delivery Metrics</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="text-right pb-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-secondary/40 mb-2">Live Insights</p>
+                            <div className="flex items-center gap-2 justify-end">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary uppercase">Cloud Sync Active</p>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    {/* The Scheduling Grid */}
+                    {viewMode === 'daily' ? (
+                        <div className="flex-grow flex items-center justify-center mb-4">
+                            <div className="w-full max-w-[1400px]">
+                                {DAYS.filter(day => psheDay === 'All Days' ? day === 'Monday' : day === psheDay).map((day) => {
+                                    const rawModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`];
+                                    const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
+                                    return (
+                                        <div key={day} className="flex flex-col gap-8">
+                                            <div className="flex items-center justify-between px-6">
+                                                <p className="text-[11px] font-black uppercase tracking-[0.4em] text-brand-primary opacity-40">
+                                                    Active Delivery Day: <span className="text-brand-accent opacity-100">{day}</span>
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                    <span className="text-[10px] font-black text-brand-primary uppercase">Ready to Teach</span>
+                                                </div>
+                                            </div>
+                                            <DroppableDayCell id={`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`}>
+                                                <div
+                                                    className={`min-h-[600px] w-full rounded-[3rem] border-2 border-dashed transition-all p-0 flex flex-col items-center justify-center text-center gap-8 group cursor-pointer relative overflow-hidden active:scale-[0.99]
+                                            ${scheduledModule
+                                                            ? 'border-brand-primary/5 bg-white shadow-2xl shadow-brand-primary/10 ring-1 ring-brand-primary/5'
+                                                            : 'border-brand-primary/10 hover:border-brand-accent/40 bg-white/30 hover:bg-white'}
+                                            `}
+                                                    onClick={() => {
+                                                        if (!scheduledModule) {
+                                                            handleSchedule(day, String(Math.floor(Math.random() * 10) + 1));
+                                                        }
+                                                    }}
+                                                >
+                                                    <AnimatePresence mode="wait">
+                                                        {scheduledModule ? (
+                                                            <motion.div
+                                                                initial={{ opacity: 0 }}
+                                                                animate={{ opacity: 1 }}
+                                                                className="w-full h-full bg-[#F8FAFC] p-8 overflow-y-auto relative"
+                                                            >
+                                                                {/* Action Buttons Container */}
+                                                                <div className="absolute top-6 right-6 flex items-center gap-2 z-50">
+                                                                    {/* Presentation Button (Only if URL exists) */}
+                                                                    {scheduledModule.presentation_url && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setActivePresentation({
+                                                                                    url: scheduledModule.presentation_url,
+                                                                                    title: scheduledModule.title
+                                                                                });
+                                                                            }}
+                                                                            className="p-2 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white rounded-full transition-all border border-brand-accent/20"
+                                                                            title="Start Presentation"
+                                                                        >
+                                                                            <Play size={16} fill="currentColor" />
+                                                                        </button>
+                                                                    )}
+
+                                                                    {/* Remove Button */}
+                                                                    <button
+                                                                        onClick={async (e) => {
+                                                                            e.stopPropagation();
+                                                                            const key = `${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`;
+
+                                                                            // Optimistic Remove
+                                                                            setScheduledModules(prev => {
+                                                                                const next = { ...prev };
+                                                                                delete next[key];
+                                                                                return next;
+                                                                            });
+
+                                                                            // Supabase Remove
+                                                                            await supabase
+                                                                                .from('teacher_schedules')
+                                                                                .delete()
+                                                                                .match({
+                                                                                    year_group: activeYear,
+                                                                                    class_id: activeClass,
+                                                                                    month_index: activeMonth,
+                                                                                    week_number: activeWeek,
+                                                                                    day_of_week: day
+                                                                                });
+                                                                        }}
+                                                                        className="p-2 bg-white hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-full transition-all z-50 border border-slate-200/50 hover:border-red-200"
+                                                                        title="Remove Lesson"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="flex gap-6 h-full">
+                                                                    {/* Left Column: Core Delivery */}
+                                                                    <div className="flex-1 flex flex-col gap-6">
+                                                                        {/* 1. Lesson Content Card */}
+                                                                        <div className="bg-white rounded-[2rem] p-8 border border-brand-primary/5 shadow-sm relative group overflow-hidden">
+                                                                            <div className="flex items-start justify-between mb-6 relative z-10">
+                                                                                <div className="flex items-center gap-4">
+                                                                                    <div className="p-3 bg-brand-bg rounded-xl text-brand-primary border border-brand-primary/10">
+                                                                                        <PlayCircle size={24} />
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <h3 className="text-sm font-black uppercase tracking-widest text-brand-primary">Lesson Content</h3>
+                                                                                        <p className="text-[10px] font-bold text-brand-secondary/40 uppercase tracking-widest">{scheduledModule.title}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+                                                                                    V2.4 Active
+                                                                                </span>
+                                                                            </div>
+
+                                                                            <p className="text-xs font-medium text-brand-secondary/70 leading-relaxed mb-8 relative z-10 max-w-lg">
+                                                                                Full interactive presentation deck including embedded videos, transition activities, and scenario-based learning checks.
+                                                                            </p>
+
+                                                                            <button className="w-full py-5 bg-brand-primary text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-brand-accent transition-all shadow-xl shadow-brand-primary/10 flex items-center justify-center gap-3 relative z-10 group/btn">
+                                                                                Open Presentation (Cloud Link)
+                                                                                <ExternalLink size={14} className="opacity-50 group-hover/btn:opacity-100 transition-opacity" />
+                                                                            </button>
+
+                                                                            <p className="text-[9px] font-bold text-brand-secondary/30 uppercase tracking-widest text-center mt-6">
+                                                                                Proprietary Content • Single License Active
+                                                                            </p>
+
+                                                                            {/* Background Decor */}
+                                                                            <div className={`absolute top-0 right-0 w-64 h-64 opacity-[0.03] ${scheduledModule.color} rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none`} />
+                                                                        </div>
+
+                                                                        {/* 2. Teacher Briefing */}
+                                                                        <div className="bg-slate-100/50 rounded-[2rem] p-8 border border-brand-primary/5 flex flex-col justify-center flex-grow">
+                                                                            <div className="flex items-center gap-4 mb-4">
+                                                                                <div className="p-2 bg-brand-primary/5 rounded-lg text-brand-primary">
+                                                                                    <Video size={18} />
+                                                                                </div>
+                                                                                <h3 className="text-xs font-black uppercase tracking-widest text-brand-primary">Teacher Briefing</h3>
+                                                                            </div>
+                                                                            <p className="text-[11px] font-medium text-brand-secondary/70 leading-relaxed mb-6">
+                                                                                Spend 3 minutes with our subject expert to master the nuances of this module before you teach it.
+                                                                            </p>
+                                                                            <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand-accent hover:text-brand-primary transition-colors">
+                                                                                Watch Video Insights
+                                                                                <PlayCircle size={14} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Right Column: Context & Resources */}
+                                                                    <div className="w-[420px] flex flex-col gap-4">
+                                                                        {/* 3. Localised Assets */}
+                                                                        <div className="bg-white rounded-[2rem] p-6 border border-brand-primary/5 shadow-sm">
+                                                                            <div className="flex items-center justify-between mb-6">
+                                                                                <div className="flex items-center gap-3">
+                                                                                    <span className="text-xl">{activeRegion.flag}</span>
+                                                                                    <h3 className="text-[11px] font-black uppercase tracking-widest text-brand-primary">{activeRegion.name} Assets</h3>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded text-emerald-600 border border-emerald-100">
+                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                                                    <span className="text-[8px] font-black uppercase tracking-widest">Localised</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="space-y-4">
+                                                                                <div className="flex gap-3">
+                                                                                    <div className="w-1 rounded-full bg-brand-accent/30 flex-shrink-0" />
+                                                                                    <p className="text-[10px] font-bold text-brand-secondary/60 uppercase tracking-wide leading-tight">
+                                                                                        Slides updated with <span className="text-brand-primary">{activeRegion.name}</span> imagery & cultural context.
+                                                                                    </p>
+                                                                                </div>
+                                                                                <div className="flex gap-3">
+                                                                                    <div className="w-1 rounded-full bg-brand-accent/30 flex-shrink-0" />
+                                                                                    <p className="text-[10px] font-bold text-brand-secondary/60 uppercase tracking-wide leading-tight">
+                                                                                        Legal: <span className="text-brand-primary">{activeRegion.statutoryTerm}</span> framework cross-referenced.
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* 4. Resources List */}
+                                                                        <div className="space-y-2">
+                                                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-secondary/30 ml-2 mb-1">Teacher Resources</p>
+
+                                                                            <div className="bg-white p-4 rounded-xl border border-brand-primary/5 flex items-center justify-between group cursor-pointer hover:border-brand-primary/20 transition-all">
+                                                                                <div className="flex items-center gap-4">
+                                                                                    <FileText size={16} className="text-brand-secondary" />
+                                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Teacher Script (PDF)</span>
+                                                                                </div>
+                                                                                <Download size={14} className="text-brand-secondary/30 group-hover:text-brand-accent transition-colors" />
+                                                                            </div>
+
+                                                                            <div className="bg-white p-4 rounded-xl border border-brand-primary/5 flex items-center justify-between group cursor-pointer hover:border-brand-primary/20 transition-all">
+                                                                                <div className="flex items-center gap-4">
+                                                                                    <FileText size={16} className="text-brand-secondary" />
+                                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Student Worksheets</span>
+                                                                                </div>
+                                                                                <Download size={14} className="text-brand-secondary/30 group-hover:text-brand-accent transition-colors" />
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* 5. HOD Tip */}
+                                                                        <div className="bg-brand-bg rounded-[2rem] p-6 border border-brand-primary/5 mt-auto">
+                                                                            <div className="flex items-center gap-2 mb-3 text-brand-accent">
+                                                                                <MessageSquare size={14} />
+                                                                                <span className="text-[10px] font-black uppercase tracking-widest">HOD Tip</span>
+                                                                            </div>
+                                                                            <p className="text-[11px] font-medium text-brand-secondary italic leading-relaxed">
+                                                                                "Focus heavily on the 'Online Footprint' section for this cohort - they've been using TikTok extensively this term."
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center gap-6 transition-transform group-hover:scale-110 duration-500 text-brand-secondary/30">
+                                                                <div className="w-20 h-20 rounded-[2.5rem] bg-brand-bg flex items-center justify-center border border-brand-primary/5 transition-all group-hover:bg-brand-accent/10 group-hover:text-brand-accent group-hover:rotate-90 group-hover:border-brand-accent/20 shadow-sm">
+                                                                    <Plus size={40} strokeWidth={3} />
+                                                                </div>
+                                                                <p className="text-xs font-black uppercase tracking-[0.3em] font-display">
+                                                                    Assign Lesson for {day}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            </DroppableDayCell>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : viewMode === 'week' ? (
+                        <div className="grid grid-cols-5 gap-4 flex-grow mb-4">
+                            {DAYS.map((day) => {
+                                const rawModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`];
+                                const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
+                                return (
+                                    <div key={day} className="flex flex-col gap-6">
+                                        <p className="text-[11px] font-black uppercase tracking-[0.4em] text-brand-primary text-center opacity-40">
+                                            {day}
+                                        </p>
+                                        <DroppableDayCell id={`${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`}>
+                                            <div
+                                                className={`flex-grow rounded-[2.5rem] border-2 border-dashed transition-all p-6 flex flex-col items-center justify-center text-center gap-4 group cursor-pointer relative overflow-hidden active:scale-98 h-[400px]
+                            ${scheduledModule
+                                                        ? 'border-brand-primary/5 bg-white shadow-2xl shadow-brand-primary/10 ring-1 ring-brand-primary/5'
+                                                        : 'border-brand-primary/10 hover:border-brand-accent/40 bg-white/30 hover:bg-white'}
+                        `}
+                                                onClick={() => {
+                                                    if (scheduledModule) {
+                                                        setSelectedExecution(scheduledModule);
+                                                    } else {
+                                                        handleSchedule(day, String(Math.floor(Math.random() * 10) + 1));
+                                                    }
+                                                }}
+                                            >
+                                                <AnimatePresence mode="wait">
+                                                    {scheduledModule ? (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, scale: 0.95 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            className="w-full h-full flex flex-col items-center"
+                                                        >
+                                                            <div className={`w-full h-2 rounded-full ${scheduledModule.color} mb-8 opacity-60 shadow-lg`} />
+                                                            <div className="w-14 h-14 rounded-[1.5rem] bg-brand-bg flex items-center justify-center mb-5 border-2 border-brand-primary/5 shadow-inner">
+                                                                <BookOpen size={24} className="text-brand-primary opacity-60" />
+                                                            </div>
+                                                            <p className="text-[13px] font-black text-brand-primary uppercase tracking-tight leading-tight mb-3 font-display italic">
+                                                                {scheduledModule.title}
+                                                            </p>
+                                                            <span className="text-[9px] font-bold text-brand-accent uppercase bg-brand-accent/5 px-3 py-1.5 rounded-full mb-6 inline-block tracking-widest border border-brand-accent/10">
+                                                                {scheduledModule.context}
+                                                            </span>
+                                                            <div className="mt-auto flex items-center justify-center gap-3 text-[10px] font-black text-brand-secondary uppercase tracking-[0.25em] pt-8 border-t border-brand-primary/5 w-full">
+                                                                <Clock size={16} className="text-brand-accent" />
+                                                                45 Mins
+                                                            </div>
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    const key = `${activeYear}-${activeClass}-${activeMonth}-${activeWeek}-${day}`;
+
+                                                                    // Optimistic Remove
+                                                                    setScheduledModules(prev => {
+                                                                        const next = { ...prev };
+                                                                        delete next[key];
+                                                                        return next;
+                                                                    });
+
+                                                                    // Supabase Remove
+                                                                    await supabase
+                                                                        .from('teacher_schedules')
+                                                                        .delete()
+                                                                        .match({
+                                                                            year_group: activeYear,
+                                                                            class_id: activeClass,
+                                                                            month_index: activeMonth,
+                                                                            week_number: activeWeek,
+                                                                            day_of_week: day
+                                                                        });
+                                                                }}
+                                                                className="absolute top-6 right-6 p-2.5 bg-white hover:bg-rose-50 text-slate-300 hover:text-rose-500 rounded-full transition-all opacity-0 group-hover:opacity-100 z-10 border border-slate-200/50 hover:border-red-200 shadow-sm"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </motion.div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-5 transition-transform group-hover:scale-110 duration-500 text-brand-secondary/30">
+                                                            <div className="w-14 h-14 rounded-[2rem] bg-brand-bg flex items-center justify-center border border-brand-primary/5 transition-all group-hover:bg-brand-accent/10 group-hover:text-brand-accent group-hover:rotate-90 group-hover:border-brand-accent/20 shadow-sm">
+                                                                <Plus size={28} strokeWidth={3} />
+                                                            </div>
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] font-display">
+                                                                Assign Lesson
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        </DroppableDayCell>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : viewMode === 'month' ? (
+                        /* Month Overview Roadmap - Redesigned for Legibility */
+                        <div className="flex-grow flex flex-col gap-6">
+                            {/* Day Headers for Month View */}
+                            <div className="grid grid-cols-[100px_1fr] gap-6 px-10">
+                                <div /> {/* Spacer for Week Label column */}
+                                <div className={`grid ${psheDay === 'All Days' ? 'grid-cols-5' : 'grid-cols-1'} gap-6`}>
+                                    {DAYS.filter(day => psheDay === 'All Days' || day === psheDay).map(day => (
+                                        <p key={day} className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-secondary/60 text-center">
+                                            {day.slice(0, 3)}
+                                        </p>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex-grow flex flex-col gap-4 overflow-y-auto pr-4 custom-scrollbar">
+                                {/* Standard 4-Week Month View */}
+                                {Array.from({ length: 4 }).map((_, i) => {
+                                    const wIndex = i;
+                                    const weekName = `Week ${i + 1}`;
+                                    return (
+                                        <div key={weekName} className="grid grid-cols-[100px_1fr] gap-6 items-stretch min-h-[140px]">
+                                            {/* Week Label Column */}
+                                            <div className="flex flex-col justify-center items-end pr-6 border-r border-brand-primary/10">
+                                                <span className="text-[10px] font-black text-brand-secondary/40 uppercase tracking-[0.2em] rotate-180 [writing-mode:vertical-lr] mb-2">
+                                                    Academic
+                                                </span>
+                                                <span className="text-2xl font-black text-brand-primary font-display italic leading-none">
+                                                    W{wIndex + 1}
+                                                </span>
+                                            </div>
+
+                                            {/* Days Grid for this week */}
+                                            <div className={`grid ${psheDay === 'All Days' ? 'grid-cols-5' : 'grid-cols-1'} gap-6`}>
+                                                {DAYS.filter(day => psheDay === 'All Days' || day === psheDay).map(day => {
+                                                    const rawModule = scheduledModules[`${activeYear}-${activeClass}-${activeMonth}-${wIndex + 1}-${day}`];
+                                                    const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
+                                                    return (
+                                                        <DroppableDayCell id={`${activeYear}-${activeClass}-${activeMonth}-${wIndex + 1}-${day}`}>
+                                                            <motion.div
+                                                                key={`${weekName}-${day}`}
+                                                                whileHover={{ y: -4, scale: 1.02 }}
+                                                                onClick={() => {
+                                                                    if (scheduledModule) {
+                                                                        setSelectedExecution(scheduledModule);
+                                                                    } else {
+                                                                        handleSchedule(day, String(Math.floor(Math.random() * 10) + 1), wIndex + 1);
+                                                                    }
+                                                                }}
+                                                                className={`rounded-[2.5rem] border p-6 flex flex-col justify-between transition-all cursor-pointer relative overflow-hidden group h-full
+                                                        ${scheduledModule
+                                                                        ? 'bg-white border-brand-primary/5 shadow-xl shadow-brand-primary/5 ring-1 ring-brand-primary/5'
+                                                                        : 'bg-white/40 border-dashed border-brand-primary/10 hover:border-brand-accent/20 hover:bg-white'}
+                                                    `}
+                                                            >
+                                                                {scheduledModule ? (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setScheduledModules(prev => {
+                                                                                    const next = { ...prev };
+                                                                                    delete next[`${activeYear}-${activeClass}-${activeMonth}-${wIndex + 1}-${day}`];
+                                                                                    return next;
+                                                                                });
+                                                                            }}
+                                                                            className="absolute top-2 right-2 p-1.5 bg-white hover:bg-rose-50 text-slate-300 hover:text-rose-500 rounded-full transition-all opacity-0 group-hover:opacity-100 z-10 border border-slate-100 hover:border-red-100 shadow-sm"
+                                                                        >
+                                                                            <Trash2 size={12} />
+                                                                        </button>
+                                                                        <div className="flex items-start justify-between mb-4">
+                                                                            <div className={`w-3 h-3 rounded-full ${scheduledModule.color} shadow-sm group-hover:scale-125 transition-transform`} />
+                                                                            <span className="text-[8px] font-black text-brand-accent uppercase tracking-widest bg-brand-accent/5 px-2 py-0.5 rounded-full border border-brand-accent/10">
+                                                                                {scheduledModule.context}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-[11px] font-black text-brand-primary uppercase tracking-tight leading-[1.3] font-display line-clamp-3 italic">
+                                                                            {scheduledModule.title}
+                                                                        </p>
+                                                                        <div className="mt-4 pt-4 border-t border-brand-primary/15 flex items-center justify-between opacity-60">
+                                                                            <Clock size={10} />
+                                                                            <span className="text-[8px] font-black uppercase tracking-widest">45m</span>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="flex-grow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <Plus size={20} className="text-brand-accent" />
+                                                                    </div>
+                                                                )}
+                                                            </motion.div>
+                                                        </DroppableDayCell>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : viewMode === 'year' ? (
+                        /* Year Overview Roadmap */
+                        <div className="flex-grow flex flex-col gap-6 overflow-y-auto pr-4 custom-scrollbar pb-12">
+                            {TERMS.map((term, tIndex) => (
+                                <div key={term.name} className="flex flex-col gap-4">
+                                    <div className="flex items-center gap-4 px-2">
+                                        <h3 className="text-xl font-black text-brand-primary font-display uppercase tracking-tight">{term.name}</h3>
+                                        <div className="h-px flex-grow bg-brand-primary/10" />
+                                    </div>
+                                    <div className="grid grid-cols-6 gap-4">
+                                        {Array.from({ length: 12 }).map((_, wIndex) => {
+                                            // Mapping term + week to a month_index and week_number for storage consistency
+                                            // Simplified mapping: Approx 4 weeks per month started in the term
+                                            const termMonthOffsets = [0, 4, 8]; // Sep, Jan, May starts
+                                            const month_index = termMonthOffsets[tIndex] + Math.floor(wIndex / 3);
+                                            const week_number = (wIndex % 3) + 1;
+                                            const targetDay = psheDay === 'All Days' ? 'Wednesday' : psheDay;
+                                            const targetId = `${activeYear}-${activeClass}-${month_index}-${week_number}-${targetDay}`;
+
+                                            const rawModule = scheduledModules[targetId];
+                                            const scheduledModule = getLocalizedContent(rawModule, activeRegion.id);
+
+                                            return (
+                                                <DroppableDayCell key={wIndex} id={targetId}>
+                                                    <div
+                                                        onClick={() => {
+                                                            if (scheduledModule) setSelectedExecution(scheduledModule);
+                                                        }}
+                                                        className={`aspect-square rounded-2xl border p-3 flex flex-col gap-2 relative group hover:scale-[1.02] transition-all cursor-pointer
+                                                            ${scheduledModule
+                                                                ? 'bg-white border-brand-primary/5 shadow-lg ring-1 ring-brand-primary/5'
+                                                                : 'border-brand-primary/10 bg-white/40 border-dashed hover:border-brand-accent/40'}
+                                                        `}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[9px] font-black text-brand-secondary/40 uppercase tracking-widest text-left">W{wIndex + 1}</span>
+                                                            {scheduledModule && (
+                                                                <div className={`w-1.5 h-1.5 rounded-full ${scheduledModule.color} shadow-sm animate-pulse`} />
+                                                            )}
+                                                        </div>
+
+                                                        {scheduledModule ? (
+                                                            <div className="flex-grow flex flex-col justify-center gap-1">
+                                                                <p className="text-[8px] font-black text-brand-primary uppercase leading-tight line-clamp-2">
+                                                                    {scheduledModule.title}
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex-grow flex items-center justify-center opacity-0 group-hover:opacity-30">
+                                                                <Plus size={14} className="text-brand-accent" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </DroppableDayCell>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        /* Department Pulse View */
+                        <div className="flex-grow flex flex-col gap-8">
+                            <div className="grid grid-cols-3 gap-6">
+                                {/* Summary Cards */}
+                                <div className="bg-white p-8 rounded-[2.5rem] border border-brand-primary/10 shadow-sm border-b-4 border-b-emerald-500">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">Total Compliance</p>
+                                    <p className="text-4xl font-black text-brand-primary font-display">94<span className="text-emerald-500">%</span></p>
+                                    <div className="mt-4 flex items-center gap-2 text-emerald-500 text-[10px] font-bold">
+                                        <CheckCircle2 size={12} />
+                                        <span>+4% from last week</span>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-8 rounded-[2.5rem] border border-brand-primary/10 shadow-sm border-b-4 border-b-brand-accent">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">Lessons Taught</p>
+                                    <p className="text-4xl font-black text-brand-primary font-display">142</p>
+                                    <p className="mt-4 text-[10px] font-bold text-brand-secondary/40">Across all Year Groups</p>
+                                </div>
+                                <div className="bg-white p-8 rounded-[2.5rem] border border-brand-primary/10 shadow-sm border-b-4 border-b-rose-500">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 mb-2">Pending Feedback</p>
+                                    <p className="text-4xl font-black text-brand-primary font-display">12</p>
+                                    <div className="mt-4 flex items-center gap-2 text-rose-500 text-[10px] font-bold">
+                                        <AlertCircle size={12} />
+                                        <span>3 urgent reviews</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Staff List Table */}
+                            <div className="bg-white rounded-[3rem] border border-brand-primary/10 shadow-sm overflow-hidden">
+                                <div className="p-8 border-b border-brand-primary/5 flex items-center justify-between bg-brand-bg/50">
+                                    <h4 className="text-[12px] font-black uppercase tracking-widest text-brand-primary flex items-center gap-3">
+                                        <Activity size={16} className="text-brand-accent" />
+                                        Staff Delivery Status
+                                    </h4>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            <span className="text-[9px] font-black uppercase text-brand-secondary/60">On Track</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                            <span className="text-[9px] font-black uppercase text-brand-secondary/60">Delayed</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-rose-500" />
+                                            <span className="text-[9px] font-black uppercase text-brand-secondary/60">Critical</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="divide-y divide-brand-primary/5">
+                                    {[
+                                        { name: 'Sarah Miller', year: 'Year 7', progress: 92, status: 'emerald', lessons: '12/13' },
+                                        { name: 'Mark Thompson', year: 'Year 8', progress: 85, status: 'amber', lessons: '11/13' },
+                                        { name: 'Jessica Wilde', year: 'Year 9', progress: 100, status: 'emerald', lessons: '13/13' },
+                                        { name: 'David Smith', year: 'Year 10', progress: 42, status: 'rose', lessons: '5/12' },
+                                    ].map((staff, idx) => (
+                                        <div key={idx} className="p-6 flex items-center justify-between hover:bg-brand-bg transition-colors group cursor-pointer">
+                                            <div className="flex items-center gap-4 w-1/4">
+                                                <div className="w-10 h-10 rounded-2xl bg-brand-primary/5 text-brand-primary flex items-center justify-center font-black text-xs group-hover:bg-brand-primary group-hover:text-white transition-all">
+                                                    {staff.name.split(' ').map(n => n[0]).join('')}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[11px] font-black text-brand-primary uppercase tracking-tight">{staff.name}</p>
+                                                    <p className="text-[9px] font-bold text-brand-secondary/40 uppercase tracking-widest">{staff.year}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow max-w-md">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-brand-secondary/60">{staff.progress}% Compliance</p>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-brand-secondary/60">{staff.lessons} Lessons</p>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-brand-primary/5 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${staff.progress}%` }}
+                                                        className={`h-full bg-${staff.status}-500 shadow-[0_0_10px_rgba(0,0,0,0.1)]`}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="w-32 flex justify-end">
+                                                <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] bg-${staff.status}-500/10 text-${staff.status}-600 border border-${staff.status}-500/20`}>
+                                                    {staff.status === 'emerald' ? 'On Track' : staff.status === 'amber' ? 'Attention' : 'Urgent'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div >
+
+                {/* Lesson Delivery Control Center (Side Panel) */}
+                <AnimatePresence>
+                    {
+                        selectedExecution && (
+                            <>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setSelectedExecution(null)}
+                                    className="absolute inset-0 bg-brand-primary/20 backdrop-blur-sm z-40"
+                                />
+                                <motion.div
+                                    initial={{ x: '100%' }}
+                                    animate={{ x: 0 }}
+                                    exit={{ x: '100%' }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                    className="absolute top-0 right-0 w-[450px] h-full bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] z-50 p-12 flex flex-col border-l border-brand-primary/5"
+                                >
+                                    <button
+                                        onClick={() => setSelectedExecution(null)}
+                                        className="absolute top-8 right-8 p-3 hover:bg-brand-bg rounded-2xl transition-colors text-brand-secondary"
+                                    >
+                                        <X size={20} />
+                                    </button>
+
+                                    <div className="mb-10">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-accent mb-4 block">
+                                            Delivery Mode
+                                        </span>
+                                        <h2 className="text-4xl font-black text-brand-primary tracking-tight font-display uppercase italic leading-none">
+                                            {selectedExecution.title}
+                                        </h2>
+                                    </div>
+
+                                    <div className="space-y-8 flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                                        {/* Main Action: Launch Content */}
+                                        <div className="p-8 rounded-[2.5rem] bg-brand-bg border border-brand-primary/5 space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <PlayCircle size={24} className="text-brand-accent" />
+                                                    <p className="text-xs font-black uppercase tracking-widest text-brand-primary">Lesson Content</p>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded">V2.4 Active</span>
+                                            </div>
+                                            <p className="text-[11px] font-medium text-brand-secondary/70 leading-relaxed">
+                                                Full interactive presentation deck including embedded videos and transition activities.
+                                            </p>
+                                            <a
+                                                href="#"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-full py-5 bg-brand-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all flex items-center justify-center gap-3 group active:scale-95 no-underline"
+                                            >
+                                                Open Presentation (Cloud Link)
+                                                <ExternalLink size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                            </a>
+                                            <div className="flex items-center gap-2 justify-center py-2 opacity-50">
+                                                <span className="text-[8px] font-bold uppercase tracking-widest text-brand-secondary">Proprietary Content • Single License Active</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Teacher Briefing Video */}
+                                        <div className="p-6 rounded-[2rem] bg-brand-primary/5 border border-brand-primary/10 group hover:border-brand-accent/30 transition-all cursor-pointer">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="p-2 bg-brand-accent/20 rounded-xl text-brand-accent group-hover:scale-110 transition-transform">
+                                                    <Video size={18} />
+                                                </div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Teacher Briefing</p>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-brand-secondary/70 leading-relaxed mb-4">
+                                                Spend 3 minutes with our subject expert to master the nuances of this module before you teach it.
+                                            </p>
+                                            <button className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-brand-accent hover:gap-3 transition-all">
+                                                Watch Video Insights
+                                                <PlayCircle size={14} />
+                                            </button>
+                                        </div>
+
+                                        {/* Regional Localization */}
+                                        <div className="p-6 rounded-[2rem] border border-brand-primary/10 bg-white shadow-sm space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg">{activeRegion.flag}</span>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary">{activeRegion.name} Assets</p>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                    <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded">Localised</span>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-1 h-3 rounded-full bg-brand-accent mt-0.5" />
+                                                    <p className="text-[9px] font-bold text-brand-secondary/70 leading-relaxed uppercase tracking-tight">
+                                                        Slides updated with <span className="text-brand-primary">{activeRegion.location}</span> imagery & cultural context.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-1 h-3 rounded-full bg-brand-accent mt-0.5" />
+                                                    <p className="text-[9px] font-bold text-brand-secondary/70 leading-relaxed uppercase tracking-tight">
+                                                        Legal: <span className="text-brand-primary">{activeRegion.statutoryTerm}</span> framework cross-referenced.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Teacher Assets */}
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary/40 pl-2">Teacher Resources</p>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <button className="flex items-center justify-between p-5 bg-white border border-brand-primary/5 rounded-2xl hover:border-brand-accent/30 transition-all group active:scale-98">
+                                                    <div className="flex items-center gap-4">
+                                                        <FileText size={18} className="text-brand-secondary" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Teacher Script (PDF)</span>
+                                                    </div>
+                                                    <Download size={14} className="text-brand-secondary/30 group-hover:text-brand-accent transition-colors" />
+                                                </button>
+                                                <button className="flex items-center justify-between p-5 bg-white border border-brand-primary/5 rounded-2xl hover:border-brand-accent/30 transition-all group active:scale-98">
+                                                    <div className="flex items-center gap-4">
+                                                        <FileText size={18} className="text-brand-secondary" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Student Worksheets</span>
+                                                    </div>
+                                                    <Download size={14} className="text-brand-secondary/30 group-hover:text-brand-accent transition-colors" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Delivery Notes */}
+                                        <div className="p-6 bg-brand-accent/5 rounded-[2rem] border border-brand-accent/10">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <MessageSquare size={18} className="text-brand-accent" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-accent">HoD Tip</p>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-brand-primary/70 italic leading-relaxed">
+                                                "Focus heavily on the 'Online Footprint' section for this cohort - they've been using TikTok extensively this term."
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button className="mt-8 w-full py-5 border-2 border-brand-primary/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-brand-primary hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all flex items-center justify-center gap-3 active:scale-95">
+                                        Mark as Delivered
+                                        <CheckCircle2 size={16} />
+                                    </button>
+                                </motion.div>
+                            </>
+                        )
+                    }
+                </AnimatePresence >
+
+                <DragOverlay>
+                    {activeDragModule ? (
+                        <div className="p-4 rounded-xl bg-white border border-brand-accent shadow-2xl w-60 rotate-2 cursor-grabbing opacity-90 ring-2 ring-brand-accent/20 pointer-events-none">
+                            <div className="flex items-start gap-4">
+                                <div className={`w-1.5 h-10 rounded-full ${activeDragModule.color} mt-1`} />
+                                <div className="flex-grow">
+                                    <p className="text-[11px] font-black text-brand-primary leading-tight font-display uppercase tracking-tight mb-1">
+                                        {activeDragModule.title}
+                                    </p>
+                                    <span className="text-[8px] font-bold text-brand-accent uppercase bg-brand-accent/10 px-2 py-0.5 rounded-full inline-block">
+                                        {activeDragModule.context}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    ) : null}
+                </DragOverlay>
+            </div>
+            {/* Presentation UI (AnimatePresence) */}
+            <AnimatePresence>
+                {activePresentation && (
+                    <PresentationModal
+                        url={activePresentation.url}
+                        title={activePresentation.title}
+                        onClose={() => setActivePresentation(null)}
+                    />
+                )}
+            </AnimatePresence>
+
+        </DndContext >
+    );
+};
+
+export default CurriculumPlanner;

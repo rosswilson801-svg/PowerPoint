@@ -1,0 +1,112 @@
+{
+    "name": "Clarity: WooCommerce to Supabase Onboarding",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "clarity-woo-purchase",
+                "options": {}
+            },
+            "id": "e6dd0932-b88a-4bb3-a3d8-cc3048fc2726",
+            "name": "Webhook (WooCommerce)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                200,
+                300
+            ],
+            "webhookId": "416976f9-7e28-4ce3-a8ee-bf35043bfb84"
+        },
+        {
+            "parameters": {
+                "operation": "insert",
+                "tableId": "schools",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "name",
+                            "fieldValue": "={{ $json.body.billing.company || 'New School (' + $json.body.billing.last_name + ')' }}"
+                        },
+                        {
+                            "fieldId": "region",
+                            "fieldValue": "={{ $json.body.billing.country || 'UK' }}"
+                        },
+                        {
+                            "fieldId": "teacher_limit",
+                            "fieldValue": "={{ $json.body.line_items[0].quantity * 10 }}"
+                        },
+                        {
+                            "fieldId": "onboarding_token",
+                            "fieldValue": "={{ $json.body.order_key + '-' + Math.random().toString(36).substring(2, 8) }}"
+                        }
+                    ]
+                }
+            },
+            "id": "b3e32b49-c125-4f36-a36c-947f6d4feae1",
+            "name": "Supabase (Create School)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                420,
+                300
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "sendTo": "={{ $('Webhook (WooCommerce)').item.json.body.billing.email }}",
+                "subject": "Welcome to Clarity: Set up your pastoral dashboard",
+                "html": "=<div style=\"font-family: sans-serif; color: #0B132B;\">\n  <h2>Welcome to Clarity!</h2>\n  <p>Thank you for your purchase. We are thrilled to partner with your school to deliver zero-prep, culturally compliant PSHE.</p>\n  <p>Your portal is ready to be configured. Clicking the link below will automatically securely tie your account to this purchase.</p>\n  <br>\n  <a href=\"https://clarity-website.com/onboarding?token={{ $json.data[0].onboarding_token }}\" style=\"display: inline-block; padding: 12px 24px; background-color: #0B132B; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;\">\n    Configure Your Portal\n  </a>\n  <br><br>\n  <p>If you have any questions, simply reply to this email.</p>\n  <p>Best,<br>The Clarity Team</p>\n</div>",
+                "options": {}
+            },
+            "id": "2deef4da-ce62-4fdb-a979-31ff7eed8c20",
+            "name": "Send Email",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2,
+            "position": [
+                640,
+                300
+            ]
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Webhook (WooCommerce)": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase (Create School)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase (Create School)": {
+            "main": [
+                [
+                    {
+                        "node": "Send Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "f0ac8eb1-ca1a-47ec-a42e-15104a37b34b",
+    "id": "R0JvO0K4CqP5iJjS",
+    "meta": {
+        "instanceId": "808b5f377c8eec557b6f2ba4d78077d242ef9984920b721e905cc98f98a3e74c"
+    },
+    "tags": []
+}

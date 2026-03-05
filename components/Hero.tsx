@@ -17,13 +17,12 @@ const Hero: React.FC = () => {
         </div>
 
         <h1 className="text-6xl md:text-8xl lg:text-[110px] font-black leading-[0.9] tracking-tighter text-brand-primary mb-12 font-display">
-          Global PSHE <br className="hidden md:block" />
-          <span className="text-brand-accent">Excellence.</span>
+          Regional Content <br className="hidden md:block" />
+          <span className="text-brand-accent">Zero Prep Time.</span>
         </h1>
 
         <p className="text-xl md:text-2xl text-brand-secondary mb-16 max-w-2xl leading-relaxed font-medium">
-          Premium PSHE curriculum solutions tailored for regional relevance.
-          Ready-to-teach modules for schools in the UK, China, HK, US, and beyond.
+          The only PSHE curriculum pre-built for your specific region—saving your teachers 10+ hours a week. Stop settling for generic UK content.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-8 mb-24">

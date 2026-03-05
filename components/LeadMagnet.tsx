@@ -39,11 +39,11 @@ const LeadMagnet: React.FC = () => {
                         <span className="text-[10px] font-black uppercase tracking-[0.2em]">Free Resource</span>
                     </div>
                     <h3 className="text-4xl md:text-6xl font-black mb-8 tracking-tighter font-display leading-[0.9]">
-                        Get a Sample <br />
-                        <span className="text-brand-accent text-glow">PSHE Lesson.</span>
+                        Get a Free <br />
+                        <span className="text-brand-accent text-glow">Regional Masterclass.</span>
                     </h3>
                     <p className="text-xl text-slate-400 font-medium mb-0 leading-relaxed max-w-lg">
-                        Experience our premium regional content firsthand. We'll send a complete sample presentation directly to your inbox.
+                        Stop adapting generic lessons. Download a fully prepped, regionally aware PSHE lesson that you can teach tomorrow with zero prep.
                     </p>
                 </div>
 
